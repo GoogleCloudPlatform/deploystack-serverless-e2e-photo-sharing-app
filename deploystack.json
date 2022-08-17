@@ -1,0 +1,12 @@
+{	"title":"BUILD END-TO-END SOCIAL MEDIA",
+	"duration":30,
+	"collect_project":true,
+	"collect_project_number":true,
+	"collect_region":true,
+	"region_type":"compute",
+	"region_default":"us-west1",
+	"collect_zone":true,
+	"hard_settings":{
+		"basename":"build-social-media"
+	}
+}

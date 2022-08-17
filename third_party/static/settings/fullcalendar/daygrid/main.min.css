@@ -1,0 +1,17 @@
+/**
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.fc-dayGridDay-view .fc-content-skeleton,.fc-dayGridWeek-view .fc-content-skeleton{padding-bottom:1em}.fc-dayGrid-view .fc-body .fc-row{min-height:4em}.fc-row.fc-rigid{overflow:hidden}.fc-row.fc-rigid .fc-content-skeleton{position:absolute;top:0;left:0;right:0}.fc-day-top.fc-other-month{opacity:.3}.fc-dayGrid-view .fc-day-number,.fc-dayGrid-view .fc-week-number{padding:2px}.fc-dayGrid-view th.fc-day-number,.fc-dayGrid-view th.fc-week-number{padding:0 2px}.fc-ltr .fc-dayGrid-view .fc-day-top .fc-day-number{float:right}.fc-rtl .fc-dayGrid-view .fc-day-top .fc-day-number{float:left}.fc-ltr .fc-dayGrid-view .fc-day-top .fc-week-number{float:left;border-radius:0 0 3px}.fc-rtl .fc-dayGrid-view .fc-day-top .fc-week-number{float:right;border-radius:0 0 0 3px}.fc-dayGrid-view .fc-day-top .fc-week-number{min-width:1.5em;text-align:center;background-color:#f2f2f2;color:grey}.fc-dayGrid-view td.fc-week-number{text-align:center}.fc-dayGrid-view td.fc-week-number>*{display:inline-block;min-width:1.25em}

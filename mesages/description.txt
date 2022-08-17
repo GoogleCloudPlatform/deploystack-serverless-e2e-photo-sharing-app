@@ -1,0 +1,8 @@
+This process will configure and create these following components: 
+* Cloud Run - which will run the app as the main server
+* Cloud SQL - To store relational database such as user info, posts
+* Cloud Storage - To store non-relational database such as post media 
+* Cloud Load Balancer - To server traffic with multiple regions 
+* Cloud DNS - To map custom domain
+* Cloud Build - To automatically deploy your app from your repo
+
