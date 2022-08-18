@@ -1,0 +1,15 @@
+.env
+.vscode
+.DS_Store
+core/config/credential.json
+
+# docker-compose
+docker-compose.debug.yml
+
+# .tfstate files
+.terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+
+_pycache_/*
