@@ -16,4 +16,3 @@ _pycache_/*
 
 # deploy stack
 test
-deploystack.json
