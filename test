@@ -82,9 +82,9 @@ gcloud config set project ${PROJECT}
 gcloud submits build
 
 
-# section_open "Test Client Instance"
-#     evalTest 'gcloud compute instances describe $CLIENT --zone="$ZONE" --format="value(name)"'  $CLIENT
-# section_close
+section_open "Test running terraform"
+    evalTest 'gcloud builds submit'
+section_close
 
 # section_open "Test Server Instance"
 #     evalTest 'gcloud compute instances describe $SERVER --zone="$ZONE" --format="value(name)"'  $SERVER
