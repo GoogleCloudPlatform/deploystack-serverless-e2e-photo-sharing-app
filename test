@@ -64,14 +64,13 @@ function evalTest() {
 
 # END DON'T REMOVE FROM test script.
 
-
 get_project_id PROJECT
 gcloud services enable \
   cloudbuild.googleapis.com \
   run.googleapis.com \
-  cloudresourcemanager.googleapis.com 
+  cloudresourcemanager.googleapis.com \
+  vpcaccess.googleapis.com
   --project=$PROJECT
-get_project_number PROJECT_NUMBER $PROJECT
 REGION=us-west1
 ZONE=us-west1-a
 BASENAME=serverless-social-media
@@ -114,7 +113,7 @@ gcloud submits build
 # section_close
 
 
-terraform destroy -var=project=${PROJECT}
+# terraform destroy -var=project=${PROJECT}
 
 
 
