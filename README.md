@@ -23,7 +23,7 @@ To remove all billing components from the project
 1. Create project with billing enabled, and configure gcloud for that project
 
    ```
-   PROJECT_ID=foobar
+   export PROJECT_ID=foobar
    gcloud config set project $PROJECT_ID
    ```
 
@@ -46,13 +46,6 @@ To remove all billing components from the project
 
    ```
    gcloud builds submit
-   ```
-
-5. Apply Terraform
-
-   ```
-   terraform init
-   terraform apply -var=project=${PROJECT_ID} -auto-approve
    ```
 
    Check the output url from Cloud Run
