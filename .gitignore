@@ -13,6 +13,3 @@ docker-compose.debug.yml
 *.tfstate.*
 
 _pycache_/*
-
-# deploy stack
-test
