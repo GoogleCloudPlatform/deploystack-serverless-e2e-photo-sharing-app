@@ -79,8 +79,9 @@ CLIENT=client
 SERVER=server
 
 gcloud config set project ${PROJECT}
-gcloud submits build
-
+cd terraform
+terraform init 
+terraform apply -var=project=${PROJECT_ID} -auto-approve
 
 section_open "Test running terraform"
     evalTest 'gcloud builds submit'
