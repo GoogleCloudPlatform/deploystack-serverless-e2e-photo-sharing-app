@@ -3,6 +3,26 @@
 This repo will help you create an end-to-end social media web app with Google Cloud and Terraform
 ![architecture](architecture.png)
 
+Components created: 
+* Cloud Run - which will run the app as the main server
+* Cloud SQL - To store relational database such as user info, posts
+* Cloud Storage - To store non-relational database such as post media 
+* Cloud Load Balancer - To server traffic with multiple regions 
+* Cloud DNS - To map custom domain
+* Cloud Build - To automatically deploy your app from gcloud
+* Secret Manager - To improve the security of the app
+* Cloud VPC - To connect Cloud SQL with Cloud Run via Private improve
+* Cloud DNS - to store static cache for faster connections 
+* Translation API - to translate the post caption if it is in another language
+
+What you can do with this app: 
+* Create post with media and caption
+* Search users
+* View newsfeed
+* Follow other users
+* Change profile picture
+* Translate the post caption to English
+
 ## Install
 You can install this application using the `Open in Google Cloud Shell` button 
 below. 
