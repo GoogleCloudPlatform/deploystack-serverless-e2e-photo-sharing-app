@@ -1,4 +1,4 @@
-# Build a social media with Google Cloud
+# Build an serverless end-to-end photo sharing application with Google Cloud
 
 This repo will help you create an end-to-end social media web app with Google Cloud and Terraform
 ![architecture](architecture.png)
