@@ -80,10 +80,7 @@ CLIENT=client
 SERVER=server
 
 gcloud config set project ${PROJECT}
-
-terraform init
-terraform plan -var=project=${PROJECT}
-terraform apply -auto-approve -var=project=${PROJECT}
+gcloud submits build
 
 
 # section_open "Test Client Instance"
