@@ -377,8 +377,9 @@ resource "google_cloud_run_service" "service" {
   project                    = var.project
   autogenerate_revision_name = true
   depends_on = [google_sql_database_instance.instance,
-    google_container_registry.main,
-  google_storage_bucket_iam_member.repo_public]
+                google_container_registry.main,
+                google_storage_bucket_iam_member.repo_public, 
+                google_secret_manager_secret.django_settings]
 
   template {
     spec {

@@ -55,7 +55,7 @@ function evalTest() {
     fi
 
     if [ "$got" != "$expected" ]; then
-        printf "Halting: '$got'  \n"
+        printf "Halting: '$got' expected '$expected'  \n"
         exit 1
     fi
 
@@ -65,6 +65,7 @@ function evalTest() {
 # END DON'T REMOVE FROM test script.
 
 get_project_id PROJECT
+get_project_number PROJECT_NUMBER $PROJECT
 REGION=us-west1
 ZONE=us-west1-a
 BASENAME=serverless-social-media
@@ -73,186 +74,66 @@ BASENAME=serverless-social-media
 gcloud config set project ${PROJECT}
 
 # terraform init
-terraform apply -auto-approve -var project="${PROJECT}"  -var region="${REGION}" 
+# terraform apply -auto-approve -var project="${PROJECT}"  -var region="${REGION}" 
 
 sql_server_name=$(terraform output -raw sql_server_name)
-private_ip_name=$(terraform output -raw sql_server_name)
-exit
-# resource "google_compute_network" "main" {
-#   provider = google
-#   name = "social-media-network-${random_id.name.hex}"
-# }
+private_ip_name=$(terraform output -raw private_ip_name)
+
 
 section_open "Test the IP Address exists"
     evalTest 'gcloud compute addresses describe $private_ip_name --global --format="value(name)"' $private_ip_name
 section_close
-# resource "google_compute_global_address" "private_ip_address" {
-#   provider = google-beta
-#   project   = var.project
-#   name          = local.private_ip_name
-#   purpose       = "VPC_PEERING"
-#   address_type  = "INTERNAL"
-#   prefix_length = 16
-#   network       = google_compute_network.main.id
-#   depends_on = [google_project_service.vpcaccess]
-# }
-
 
 section_open "Testing VPN"
-    evalTest 'gcloud compute networks vpc-access connectors describe vpc-con-us-west1 --region $REGION --format="value(name)"' "projects/$PROJECT/locations/us-west1/connectors/vpc-con-us-west1"
-    evalTest 'gcloud compute networks vpc-access connectors describe vpc-con-us-central1 --region $REGION --format="value(name)"' "projects/$PROJECT/locations/us-central1/connectors/vpc-con-us-central1"
-    evalTest 'gcloud compute networks vpc-access connectors describe vpc-con-us-east1 --region $REGION --format="value(name)"' "projects/$PROJECT/locations/us-east1/connectors/vpc-con-us-east1"
+    evalTest 'gcloud compute networks vpc-access connectors describe vpc-con-us-west1 --region us-west1 --format="value(name)"' "projects/$PROJECT/locations/us-west1/connectors/vpc-con-us-west1"
+    evalTest 'gcloud compute networks vpc-access connectors describe vpc-con-us-central1 --region us-central1 --format="value(name)"' "projects/$PROJECT/locations/us-central1/connectors/vpc-con-us-central1"
+    evalTest 'gcloud compute networks vpc-access connectors describe vpc-con-us-east1 --region us-east1  --format="value(name)"' "projects/$PROJECT/locations/us-east1/connectors/vpc-con-us-east1"
 section_close
 
-# resource "google_vpc_access_connector" "connector" {
-#   for_each = {"us-west1": 8, "us-central1": 9, "us-east1": 10}
-#   name          = "vpc-con-${each.key}"
-#   ip_cidr_range = "10.${each.value}.0.0/28"
-#   region        = each.key
-#   network       = google_compute_network.main.name
-#   depends_on = [google_project_service.vpcaccess]
-# }
-
-
-# resource "google_service_account" "django" {
-#   account_id = "django"
-# }
+section_open "Test Service Account"
+    evalTest 'gcloud iam service-accounts describe django@$PROJECT.iam.gserviceaccount.com --format="value(email)"' "django@$PROJECT.iam.gserviceaccount.com"
+section_close
 
 section_open "Test the Cloud Storage Bucket exists"
-evalTest 'gsutil ls gs://$PROJECT-bucket | grep 404 '  ""
+evalTest 'gsutil ls | grep $PROJECT-bucket '  "gs://$PROJECT-bucket/"
 section_close
-# resource "google_storage_bucket" "media" {
-#   name     = "${var.project}-bucket"
-#   location = "US"
-# }
-
-
 
 section_open "Test SQL Server"
-    evalTest 'gcloud sql instances describe $sql_server_name --format="value(name)"' $SQLNAME
+    evalTest 'gcloud sql instances describe $sql_server_name --format="value(name)"' $sql_server_name
 section_close
-# resource "google_sql_database_instance" "instance" {
-#   name             = "sql-database-${random_id.db_name_suffix.hex}"
-#   database_version = "MYSQL_8_0"
-#   region           = var.region
-#   depends_on = [google_vpc_access_connector.connector, google_compute_network.main]
-#   settings {
-#     tier = "db-f1-micro"
-#     ip_configuration {
-#       ipv4_enabled    = "true"
-#       private_network = google_compute_network.main.id
-#     }
-#   }
-#   deletion_protection = true
-# }
+
+
 
 
 section_open "Testing Secrets"
     evalTest 'gcloud secrets describe django_settings --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/django_settings"
-    evalTest 'gcloud secrets describe DATABASE_PASSWORD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_PASSWORD"
-    evalTest 'gcloud secrets describe DATABASE_USER --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/DATABASE_USER"
-    evalTest 'gcloud secrets describe DATABASE_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_NAME"
-    evalTest 'gcloud secrets describe DATABASE_HOST_PROD --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/DATABASE_HOST_PROD"
-    evalTest 'gcloud secrets describe DATABASE_PORT_PROD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_PORT_PROD"
-    evalTest 'gcloud secrets describe EXTERNAL_IP --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/EXTERNAL_IP"
-    evalTest 'gcloud secrets describe GS_BUCKET_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/GS_BUCKET_NAME"
-    evalTest 'gcloud secrets describe PROJECT_ID --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/PROJECT_ID"
-    evalTest 'gcloud secrets describe WEBSITE_URL_US_CENTRAL1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_CENTRAL1"
-    evalTest 'gcloud secrets describe WEBSITE_URL_US_WEST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_WEST1"
-    evalTest 'gcloud secrets describe WEBSITE_URL_US_EAST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_EAST1"
+    # evalTest 'gcloud secrets describe DATABASE_PASSWORD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_PASSWORD"
+    # evalTest 'gcloud secrets describe DATABASE_USER --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/DATABASE_USER"
+    # evalTest 'gcloud secrets describe DATABASE_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_NAME"
+    # evalTest 'gcloud secrets describe DATABASE_HOST_PROD --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/DATABASE_HOST_PROD"
+    # evalTest 'gcloud secrets describe DATABASE_PORT_PROD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_PORT_PROD"
+    # evalTest 'gcloud secrets describe EXTERNAL_IP --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/EXTERNAL_IP"
+    # evalTest 'gcloud secrets describe GS_BUCKET_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/GS_BUCKET_NAME"
+    # evalTest 'gcloud secrets describe PROJECT_ID --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/PROJECT_ID"
+    # evalTest 'gcloud secrets describe WEBSITE_URL_US_CENTRAL1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_CENTRAL1"
+    # evalTest 'gcloud secrets describe WEBSITE_URL_US_WEST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_WEST1"
+    # evalTest 'gcloud secrets describe WEBSITE_URL_US_EAST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_EAST1"
     evalTest 'gcloud secrets describe SUPERUSER_PASSWORD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/SUPERUSER_PASSWORD"
 section_close
 
-# esource "google_secret_manager_secret" "django_settings" {
-#   secret_id = "django_settings"
-
-#   replication {
-#     automatic = true
-#   }
-#   depends_on = [google_project_service.secretmanager]
-
-# }
-
-
-# resource "google_secret_manager_secret" "main" {
-#    for_each = { 
-#       "DATABASE_PASSWORD": google_sql_user.django.password,
-#       "DATABASE_USER": google_sql_user.django.name,
-#       "DATABASE_NAME": google_sql_database.database.name, 
-#       "DATABASE_HOST_PROD": google_sql_database_instance.instance.private_ip_address,
-#       "DATABASE_PORT_PROD": 3306, 
-#       "EXTERNAL_IP": module.lb-http.external_ip,
-#       "PROJECT_ID": var.project, 
-#       "GS_BUCKET_NAME":var.project, 
-#       "WEBSITE_URL_US_CENTRAL1": google_cloud_run_service.service["us-central1"].status[0].url,
-#       "WEBSITE_URL_US_WEST1": google_cloud_run_service.service["us-west1"].status[0].url,
-#       "WEBSITE_URL_US_EAST1": google_cloud_run_service.service["us-east1"].status[0].url,
-#     }
-#     secret_id = "${each.key}"
-#     replication {
-#       automatic = true
-#     }
-    
-#    depends_on = [google_project_service.secretmanager, google_sql_user.django, google_sql_database.database, google_sql_database_instance.instance]
-
-# }
-
-# resource "google_secret_manager_secret" "SUPERUSER_PASSWORD" {
-#   secret_id = "SUPERUSER_PASSWORD"
-#   replication {
-#     automatic = true
-#   }
-#   depends_on = [google_project_service.secretmanager]
-# }
 
 
 
-# resource "google_cloud_run_service" "service" {
-#   for_each = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
-#   name                       = "${var.project}"
-#   location                   = each.value
-#   project                    = var.project
-#   autogenerate_revision_name = true
-#   depends_on = [google_sql_database_instance.instance]
+section_open "Test Cloud Run Services"
+    evalTest 'gcloud run services describe $PROJECT --region=us-central1 --format="value(name)"' "$PROJECT "
+    evalTest 'gcloud run services describe $PROJECT --region=us-west1 --format="value(name)"' "$PROJECT "
+    evalTest 'gcloud run services describe $PROJECT --region=us-east1 --format="value(name)"' "$PROJECT "
+section_close
 
-#   template {
-#     spec {
-#       service_account_name = google_service_account.django.email
-#       containers {
-#         image = "gcr.io/${var.project}/${var.service}:latest"
-#         env {
-#           name = "PROJECT_ID"
-#           value = var.project
-#         }
-#       }
-#     }
 
-#     metadata {
-#       annotations = {
-#         "autoscaling.knative.dev/maxScale"      = "100"
-#         "run.googleapis.com/cloudsql-instances" = google_sql_database_instance.instance.connection_name
-#         "run.googleapis.com/client-name"        = "terraform"
-#         "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[each.key].name
-#         "run.googleapis.com/vpc-access-egress"    = "all-traffic"
-#       }
-#     }
-#   }
 
-#   traffic {
-#     percent         = 100
-#     latest_revision = true
-#   }
-# }
 
-# data "google_iam_policy" "noauth" {
-#   binding {
-#     role = "roles/run.invoker"
-#     members = [
-#       "allUsers",
-#     ]
-#   }
-# }
-
+# TODO: track down how these should be tested, when it successfully runs
 # # Step 11: Create Load Balancer to handle traffics from multiple regions 
 # resource "google_compute_region_network_endpoint_group" "default" {
 #   for_each = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
@@ -264,86 +145,87 @@ section_close
 #   }
 # }
 
+# TODO: Change these names as these names probably won't be accurate
+section_open "Test Load Balancer parts dont exist"
+    evalTest 'gcloud compute forwarding-rules describe  $BASENAME-http-lb-forwarding-rule --global --format="value(name)"'  $BASENAME-http-lb-forwarding-rule
+    evalTest 'gcloud compute target-http-proxies describe $BASENAME-lb-proxy  --global --format="value(name)"' $BASENAME-lb-proxy 
+    evalTest 'gcloud compute url-maps describe $BASENAME-lb --global --format="value(name)"' $BASENAME-lb
+    evalTest 'gcloud compute backend-services describe $BASENAME-service --global --format="value(name)"'  $BASENAME-service
+section_close
 
-# module "lb-http" {
-#   source            = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
-#   version           = "~> 4.5"
 
-#   project = var.project
-#   name    = var.project
 
-#   ssl = false
-#   https_redirect = true
-#   managed_ssl_certificate_domains = []
-#   use_ssl_certificates            = false
-#   backends = {
-#     default = {
-#       description            = null
-#       enable_cdn             = true
-#       custom_request_headers = null
-  
-#       log_config = {
-#         enable      = true
-#         sample_rate = 1.0
-#       }
+exit
 
-#       groups = [
-#         for neg in google_compute_region_network_endpoint_group.default:
-#         {
-#           group = neg.id
-#         }
-#       ]
+# terraform destroy -var project="${PROJECT}"  -var region="${REGION}" 
 
-#       iap_config = {
-#         enable               = false
-#         oauth2_client_id     = null
-#         oauth2_client_secret = null
-#       }
-#       security_policy = null
-#     }
+
+
+# TODO: Change these names as these names probably won't be accurate
+section_open "Test Load Balancer parts dont exist"
+    evalTest 'gcloud compute forwarding-rules describe  $BASENAME-http-lb-forwarding-rule --global --format="value(name)"'  "EXPECTERROR"
+    evalTest 'gcloud compute target-http-proxies describe $BASENAME-lb-proxy  --global --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud compute url-maps describe $BASENAME-lb --global --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud compute backend-services describe $BASENAME-service --global --format="value(name)"'  "EXPECTERROR"
+section_close
+
+# TODO: track down how these should be tested, when it successfully runs
+# # Step 11: Create Load Balancer to handle traffics from multiple regions 
+# resource "google_compute_region_network_endpoint_group" "default" {
+#   for_each = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
+#   name                  = "${var.project}--neg--${each.key}"
+#   network_endpoint_type = "SERVERLESS"
+#   region                = google_cloud_run_service.service[each.key].location
+#   cloud_run { 
+#     service = google_cloud_run_service.service[each.key].name
 #   }
 # }
 
+section_open "Test Cloud Run Services don't exists"
+    evalTest 'gcloud run services describe $PROJECT --region=us-central1 --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud run services describe $PROJECT --region=us-west1 --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud run services describe $PROJECT --region=us-east1 --format="value(name)"' "EXPECTERROR"
+section_close
+
+section_open "Testing Secrets don't exist"
+    evalTest 'gcloud secrets describe django_settings --format="value(name)" | xargs' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe DATABASE_PASSWORD --format="value(name)"' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe DATABASE_USER --format="value(name)" | xargs' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe DATABASE_NAME --format="value(name)"' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe DATABASE_HOST_PROD --format="value(name)" | xargs' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe DATABASE_PORT_PROD --format="value(name)"' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe EXTERNAL_IP --format="value(name)" | xargs' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe GS_BUCKET_NAME --format="value(name)"' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe PROJECT_ID --format="value(name)" | xargs' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe WEBSITE_URL_US_CENTRAL1 --format="value(name)"' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe WEBSITE_URL_US_WEST1 --format="value(name)"' "EXPECTERROR"
+    # evalTest 'gcloud secrets describe WEBSITE_URL_US_EAST1 --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud secrets describe SUPERUSER_PASSWORD --format="value(name)"' "EXPECTERROR"
+section_close
+
+section_open "Test SQL Server doesn't exist"
+    evalTest 'gcloud sql instances describe $sql_server_name --format="value(name)"' "EXPECTERROR"
+section_close
+
+section_open "Test the Cloud Storage Bucket doesn't exist"
+    evalTest 'gsutil ls | grep $PROJECT-bucket '  ""
+section_close
+
+section_open "Test Service Account doesn't exist"
+    evalTest 'gcloud iam service-accounts describe django@$PROJECT.iam.gserviceaccount.com --format="value(email)"' "EXPECTERROR"
+section_close
+
+section_open "Testing VPN doesn't exist"
+    evalTest 'gcloud compute networks vpc-access connectors describe vpc-con-us-west1 --region us-west1 --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud compute networks vpc-access connectors describe vpc-con-us-central1 --region us-central1 --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud compute networks vpc-access connectors describe vpc-con-us-east1 --region us-east1  --format="value(name)"' "EXPECTERROR"
+section_close
+
+section_open "Test the IP Address exists doesn't exist"
+    evalTest 'gcloud compute addresses describe $private_ip_name --global --format="value(name)"' "EXPECTERROR"
+section_close
 
 
-# section_open "Test Server Instance"
-#     evalTest 'gcloud compute instances describe $SERVER --zone="$ZONE" --format="value(name)"'  $SERVER
-# section_close
-
-
-# section_open "Test Client is running"
-#     CLIENT=$(terraform output client_url)
-#     CLIENT=${CLIENT//\"/}
-#     CLIENT=${CLIENT//http:\/\//}
-#     echo "Testing $CLIENT"
-
-#     attempt_counter=0
-#     max_attempts=50
-
-#     until $(curl --output /dev/null --silent --head --fail http://$CLIENT); do
-#         if [ ${attempt_counter} -eq ${max_attempts} ];then
-#         echo "Max attempts reached"
-#         exit 1
-#         fi
-
-#         printf '.'
-#         attempt_counter=$(($attempt_counter+1))
-#         sleep 5
-#     done
-# section_close
-
-
-# terraform destroy -var=project=${PROJECT}
-
-
-
-# section_open "Test Client Instance"
-#     evalTest 'gcloud compute instances describe $CLIENT --zone="$ZONE" --format="value(name)"'  "EXPECTERROR"
-# section_close
-
-# section_open "Test Server Instance"
-#     evalTest 'gcloud compute instances describe $SERVER --zone="$ZONE" --format="value(name)"'  "EXPECTERROR"
-# section_close
 
 
 
