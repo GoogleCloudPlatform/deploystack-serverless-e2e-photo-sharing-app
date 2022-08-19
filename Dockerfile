@@ -1,4 +1,4 @@
-# Copyright 2022 Google Inc. All Rights Reserved.
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-steps:
-  - name: "gcr.io/cloud-builders/docker"
-    args: ["build", "-t", "gcr.io/${PROJECT_ID}/${_SERVICE_NAME}", "."]
+FROM python:3.8-slim-buster
 
-  - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/${PROJECT_ID}/${_SERVICE_NAME}"]
-  
-  - name: "hashicorp/terraform"
-    entrypoint: sh
-    args:
-      - '-c'
-      - |
-        terraform init
-        terraform apply -var=project=${PROJECT_ID} -auto-approve
+ENV APP_HOME /app
+ENV PORT 8080
+ENV PYTHONUNBUFFERED 1
 
-substitutions: 
-  _SERVICE_NAME: "socialmedia"
+WORKDIR $APP_HOME
+COPY requirements.txt .
+
+RUN pip install --upgrade pip -r requirements.txt
+
+COPY . .
+CMD PRODUCTION_MODE="production" python3 manage.py runserver 0.0.0.0:8080
