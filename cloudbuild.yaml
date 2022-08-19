@@ -19,14 +19,14 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/${PROJECT_ID}/${_SERVICE_NAME}"]
   
-  - name: "hashicorp/terraform"
-    entrypoint: sh
-    args:
-      - '-c'
-      - |
-        cd terraform
-        terraform init
-        terraform apply -var=project=${PROJECT_ID} -auto-approve
+  # - name: "hashicorp/terraform"
+  #   entrypoint: sh
+  #   args:
+  #     - '-c'
+  #     - |
+  #       cd terraform
+  #       terraform init
+  #       terraform apply -var=project=${PROJECT_ID} -auto-approve
 
 substitutions: 
   _SERVICE_NAME: "socialmedia"

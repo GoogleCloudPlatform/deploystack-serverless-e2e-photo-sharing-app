@@ -45,6 +45,11 @@ variable "service" {
   description = "The name of the service"
 }
 
+variable "basename" {
+  type        = string
+  default     = "serverless-e2e"
+  description = "Prefix for naming resources"
+}
 
 data "google_project" "project" {
   project_id = var.project
@@ -96,6 +101,7 @@ resource "google_project_service" "servicenetworking" {
   disable_on_destroy = false
 }
 
+
 # Step 3: Create compute networks
 # ------------------------------------------------------------------------------
 # SEVERLESS VPC CONNECTOR FOR CLOUD SQL
@@ -116,6 +122,7 @@ resource "google_compute_global_address" "private_ip_address" {
   depends_on = [google_project_service.vpcaccess]
 }
 
+
 resource "google_service_networking_connection" "private_vpc_connection" {
   provider = google-beta
 
@@ -125,13 +132,20 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   depends_on = [google_project_service.vpcaccess]
 }
 
+
+resource "google_project_iam_member" "serviceagent" {
+  project    = data.google_project.project.number
+  role       = "roles/editor"
+  member     = local.serviceagent_serviceaccount
+}
+
 resource "google_vpc_access_connector" "connector" {
   for_each = {"us-west1": 8, "us-central1": 9, "us-east1": 10}
   name          = "vpc-con-${each.key}"
   ip_cidr_range = "10.${each.value}.0.0/28"
   region        = each.key
   network       = google_compute_network.main.name
-  depends_on = [google_project_service.vpcaccess]
+  depends_on = [google_project_service.vpcaccess, google_project_iam_member.serviceagent]
 }
 
 
@@ -236,6 +250,7 @@ resource "google_secret_manager_secret_iam_binding" "django_settings" {
 }
 
 locals {
+  serviceagent_serviceaccount = "serviceAccount:${data.google_project.project.number}@cloudservices.gserviceaccount.com"
   cloudbuild_serviceaccount = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
   django_serviceaccount     = "serviceAccount:${google_service_account.django.email}"
   private_network_name = "network-${random_id.name.hex}"
@@ -329,6 +344,23 @@ resource "google_secret_manager_secret_iam_binding" "SUPERUSER_PASSWORD" {
 }
 
 
+resource "google_container_registry" "main" {
+  project  = var.project
+  location = "US"
+}
+
+resource "null_resource" "cloudbuild_api" {
+  provisioner "local-exec" {
+    working_dir = path.module
+    command     = "gcloud builds submit . "
+  }
+
+  depends_on = [
+    google_container_registry.main
+  ]
+}
+
+
 # Step 10: Create Cloud Run service
 data "google_cloud_run_locations" "default" { }
 
@@ -338,7 +370,7 @@ resource "google_cloud_run_service" "service" {
   location                   = each.value
   project                    = var.project
   autogenerate_revision_name = true
-  depends_on = [google_sql_database_instance.instance]
+  depends_on = [google_sql_database_instance.instance, google_container_registry.main]
 
   template {
     spec {
@@ -367,6 +399,8 @@ resource "google_cloud_run_service" "service" {
     percent         = 100
     latest_revision = true
   }
+
+  
 }
 
 data "google_iam_policy" "noauth" {
@@ -461,8 +495,19 @@ output "url" {
   description = "The URL of the load balancer with the external IP address. Use this to set up custom domain mapping."
 }
 
+
+
 output "SUPERUSER_PASSWORD" {
   value     = google_secret_manager_secret_version.SUPERUSER_PASSWORD.secret_data
   sensitive = true
   description = "superper user password for admin access. Save it to set up superuser account."
+}
+
+
+output "sql_server_name" {
+  value     = google_sql_database_instance.instance.name
+}
+
+output "private_ip_name" {
+  value     = local.private_ip_name
 }
