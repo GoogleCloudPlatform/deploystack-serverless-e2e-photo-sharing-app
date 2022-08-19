@@ -108,18 +108,18 @@ resource "google_project_service" "servicenetworking" {
 # ------------------------------------------------------------------------------
 resource "google_compute_network" "main" {
   provider = google
-  name = "social-media-network-${random_id.name.hex}"
+  name     = "social-media-network-${random_id.name.hex}"
 }
 
 resource "google_compute_global_address" "private_ip_address" {
-  provider = google-beta
-  project   = var.project
+  provider      = google-beta
+  project       = var.project
   name          = local.private_ip_name
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
   network       = google_compute_network.main.id
-  depends_on = [google_project_service.vpcaccess]
+  depends_on    = [google_project_service.vpcaccess]
 }
 
 
@@ -129,23 +129,23 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   network                 = google_compute_network.main.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
-  depends_on = [google_project_service.vpcaccess]
+  depends_on              = [google_project_service.vpcaccess]
 }
 
 
 resource "google_project_iam_member" "serviceagent" {
-  project    = data.google_project.project.number
-  role       = "roles/editor"
-  member     = local.serviceagent_serviceaccount
+  project = data.google_project.project.number
+  role    = "roles/editor"
+  member  = local.serviceagent_serviceaccount
 }
 
 resource "google_vpc_access_connector" "connector" {
-  for_each = {"us-west1": 8, "us-central1": 9, "us-east1": 10}
+  for_each      = { "us-west1" : 8, "us-central1" : 9, "us-east1" : 10 }
   name          = "vpc-con-${each.key}"
   ip_cidr_range = "10.${each.value}.0.0/28"
   region        = each.key
   network       = google_compute_network.main.name
-  depends_on = [google_project_service.vpcaccess, google_project_iam_member.serviceagent]
+  depends_on    = [google_project_service.vpcaccess, google_project_iam_member.serviceagent]
 }
 
 
@@ -156,8 +156,8 @@ resource "google_service_account" "django" {
 
 # Step 5: Create the database
 resource "random_string" "random" {
-  length           = 4
-  special          = false
+  length  = 4
+  special = false
 }
 
 resource "random_password" "database_password" {
@@ -177,7 +177,7 @@ resource "google_sql_database_instance" "instance" {
   name             = "sql-database-${random_id.db_name_suffix.hex}"
   database_version = "MYSQL_8_0"
   region           = var.region
-  depends_on = [google_vpc_access_connector.connector, google_compute_network.main]
+  depends_on       = [google_vpc_access_connector.connector, google_compute_network.main]
   settings {
     tier = "db-f1-micro"
     ip_configuration {
@@ -208,7 +208,7 @@ resource "google_storage_bucket" "media" {
 
 resource "google_storage_bucket_iam_binding" "main" {
   bucket = google_storage_bucket.media.name
-  role = "roles/storage.objectViewer"
+  role   = "roles/storage.objectViewer"
   members = [
     "allUsers",
   ]
@@ -251,65 +251,65 @@ resource "google_secret_manager_secret_iam_binding" "django_settings" {
 
 locals {
   serviceagent_serviceaccount = "serviceAccount:${data.google_project.project.number}@cloudservices.gserviceaccount.com"
-  cloudbuild_serviceaccount = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
-  django_serviceaccount     = "serviceAccount:${google_service_account.django.email}"
-  private_network_name = "network-${random_id.name.hex}"
-  private_ip_name      = "private-ip-${random_id.name.hex}"
+  cloudbuild_serviceaccount   = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  django_serviceaccount       = "serviceAccount:${google_service_account.django.email}"
+  private_network_name        = "network-${random_id.name.hex}"
+  private_ip_name             = "private-ip-${random_id.name.hex}"
 }
 
 
 # Step 9: Populate secrets
 resource "google_secret_manager_secret" "main" {
-   for_each = { 
-      "DATABASE_PASSWORD": google_sql_user.django.password,
-      "DATABASE_USER": google_sql_user.django.name,
-      "DATABASE_NAME": google_sql_database.database.name, 
-      "DATABASE_HOST_PROD": google_sql_database_instance.instance.private_ip_address,
-      "DATABASE_PORT_PROD": 3306, 
-      "EXTERNAL_IP": module.lb-http.external_ip,
-      "PROJECT_ID": var.project, 
-      "GS_BUCKET_NAME":var.project, 
-      "WEBSITE_URL_US_CENTRAL1": google_cloud_run_service.service["us-central1"].status[0].url,
-      "WEBSITE_URL_US_WEST1": google_cloud_run_service.service["us-west1"].status[0].url,
-      "WEBSITE_URL_US_EAST1": google_cloud_run_service.service["us-east1"].status[0].url,
-    }
-    secret_id = "${each.key}"
-    replication {
-      automatic = true
-    }
-    
-   depends_on = [google_project_service.secretmanager, google_sql_user.django, google_sql_database.database, google_sql_database_instance.instance]
+  for_each = {
+    "DATABASE_PASSWORD" : google_sql_user.django.password,
+    "DATABASE_USER" : google_sql_user.django.name,
+    "DATABASE_NAME" : google_sql_database.database.name,
+    "DATABASE_HOST_PROD" : google_sql_database_instance.instance.private_ip_address,
+    "DATABASE_PORT_PROD" : 3306,
+    "EXTERNAL_IP" : module.lb-http.external_ip,
+    "PROJECT_ID" : var.project,
+    "GS_BUCKET_NAME" : var.project,
+    "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
+    "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
+    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url,
+  }
+  secret_id = each.key
+  replication {
+    automatic = true
+  }
+
+  depends_on = [google_project_service.secretmanager, google_sql_user.django, google_sql_database.database, google_sql_database_instance.instance]
 
 }
 
 resource "google_secret_manager_secret_version" "main" {
-  for_each = { "DATABASE_PASSWORD": google_sql_user.django.password,
-    "DATABASE_USER": google_sql_user.django.name,
-    "DATABASE_NAME": google_sql_database.database.name, 
-    "DATABASE_HOST_PROD": google_sql_database_instance.instance.private_ip_address,
-    "DATABASE_PORT_PROD": 3306, 
-    "EXTERNAL_IP": module.lb-http.external_ip,
-    "PROJECT_ID": var.project, 
-    "GS_BUCKET_NAME":var.project, 
-    "WEBSITE_URL_US_CENTRAL1": google_cloud_run_service.service["us-central1"].status[0].url,
-    "WEBSITE_URL_US_WEST1": google_cloud_run_service.service["us-west1"].status[0].url,
-    "WEBSITE_URL_US_EAST1": google_cloud_run_service.service["us-east1"].status[0].url,  }
+  for_each = { "DATABASE_PASSWORD" : google_sql_user.django.password,
+    "DATABASE_USER" : google_sql_user.django.name,
+    "DATABASE_NAME" : google_sql_database.database.name,
+    "DATABASE_HOST_PROD" : google_sql_database_instance.instance.private_ip_address,
+    "DATABASE_PORT_PROD" : 3306,
+    "EXTERNAL_IP" : module.lb-http.external_ip,
+    "PROJECT_ID" : var.project,
+    "GS_BUCKET_NAME" : var.project,
+    "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
+    "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
+  "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url, }
   secret      = google_secret_manager_secret.main[each.key].id
-  secret_data = "${each.value}"
+  secret_data = each.value
 }
 
 resource "google_secret_manager_secret_iam_binding" "main" {
-  for_each = { "DATABASE_PASSWORD": google_sql_user.django.password,
-    "DATABASE_USER": google_sql_user.django.name,
-    "DATABASE_NAME": google_sql_database.database.name, 
-    "DATABASE_HOST_PROD": google_sql_database_instance.instance.private_ip_address,
-    "DATABASE_PORT_PROD": 3306, 
-    "EXTERNAL_IP": module.lb-http.external_ip,
-    "PROJECT_ID": var.project, 
-    "GS_BUCKET_NAME":var.project, 
-    "WEBSITE_URL_US_CENTRAL1": google_cloud_run_service.service["us-central1"].status[0].url,
-    "WEBSITE_URL_US_WEST1": google_cloud_run_service.service["us-west1"].status[0].url,
-    "WEBSITE_URL_US_EAST1": google_cloud_run_service.service["us-east1"].status[0].url,}
+  for_each = { "DATABASE_PASSWORD" : google_sql_user.django.password,
+    "DATABASE_USER" : google_sql_user.django.name,
+    "DATABASE_NAME" : google_sql_database.database.name,
+    "DATABASE_HOST_PROD" : google_sql_database_instance.instance.private_ip_address,
+    "DATABASE_PORT_PROD" : 3306,
+    "EXTERNAL_IP" : module.lb-http.external_ip,
+    "PROJECT_ID" : var.project,
+    "GS_BUCKET_NAME" : var.project,
+    "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
+    "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
+  "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url, }
   secret_id = google_secret_manager_secret.main[each.key].id
   role      = "roles/secretmanager.secretAccessor"
   members   = [local.cloudbuild_serviceaccount]
@@ -349,6 +349,12 @@ resource "google_container_registry" "main" {
   location = "US"
 }
 
+resource "google_storage_bucket_iam_member" "repo_public" {
+  bucket = google_container_registry.main.id
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
+}
+
 resource "null_resource" "cloudbuild_api" {
   provisioner "local-exec" {
     working_dir = path.module
@@ -362,15 +368,17 @@ resource "null_resource" "cloudbuild_api" {
 
 
 # Step 10: Create Cloud Run service
-data "google_cloud_run_locations" "default" { }
+data "google_cloud_run_locations" "default" {}
 
 resource "google_cloud_run_service" "service" {
-  for_each = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
-  name                       = "${var.project}"
+  for_each                   = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
+  name                       = var.project
   location                   = each.value
   project                    = var.project
   autogenerate_revision_name = true
-  depends_on = [google_sql_database_instance.instance, google_container_registry.main]
+  depends_on = [google_sql_database_instance.instance,
+    google_container_registry.main,
+  google_storage_bucket_iam_member.repo_public]
 
   template {
     spec {
@@ -378,7 +386,7 @@ resource "google_cloud_run_service" "service" {
       containers {
         image = "gcr.io/${var.project}/${var.service}:latest"
         env {
-          name = "PROJECT_ID"
+          name  = "PROJECT_ID"
           value = var.project
         }
       }
@@ -386,9 +394,9 @@ resource "google_cloud_run_service" "service" {
 
     metadata {
       annotations = {
-        "autoscaling.knative.dev/maxScale"      = "100"
-        "run.googleapis.com/cloudsql-instances" = google_sql_database_instance.instance.connection_name
-        "run.googleapis.com/client-name"        = "terraform"
+        "autoscaling.knative.dev/maxScale"        = "100"
+        "run.googleapis.com/cloudsql-instances"   = google_sql_database_instance.instance.connection_name
+        "run.googleapis.com/client-name"          = "terraform"
         "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[each.key].name
         "run.googleapis.com/vpc-access-egress"    = "all-traffic"
       }
@@ -400,7 +408,7 @@ resource "google_cloud_run_service" "service" {
     latest_revision = true
   }
 
-  
+
 }
 
 data "google_iam_policy" "noauth" {
@@ -415,7 +423,7 @@ data "google_iam_policy" "noauth" {
 resource "google_cloud_run_service_iam_policy" "noauth" {
   for_each = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
   location = google_cloud_run_service.service[each.key].location
-  project  = google_cloud_run_service.service[each.key].project 
+  project  = google_cloud_run_service.service[each.key].project
   service  = google_cloud_run_service.service[each.key].name
 
   policy_data = data.google_iam_policy.noauth.policy_data
@@ -424,24 +432,24 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
 
 # Step 11: Create Load Balancer to handle traffics from multiple regions 
 resource "google_compute_region_network_endpoint_group" "default" {
-  for_each = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
+  for_each              = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
   name                  = "${var.project}--neg--${each.key}"
   network_endpoint_type = "SERVERLESS"
   region                = google_cloud_run_service.service[each.key].location
-  cloud_run { 
+  cloud_run {
     service = google_cloud_run_service.service[each.key].name
   }
 }
 
 module "lb-http" {
-  source            = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
-  version           = "~> 4.5"
+  source  = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
+  version = "~> 4.5"
 
   project = var.project
   name    = var.project
 
-  ssl = false
-  https_redirect = true
+  ssl                             = false
+  https_redirect                  = true
   managed_ssl_certificate_domains = []
   use_ssl_certificates            = false
   backends = {
@@ -449,14 +457,14 @@ module "lb-http" {
       description            = null
       enable_cdn             = true
       custom_request_headers = null
-  
+
       log_config = {
         enable      = true
         sample_rate = 1.0
       }
 
       groups = [
-        for neg in google_compute_region_network_endpoint_group.default:
+        for neg in google_compute_region_network_endpoint_group.default :
         {
           group = neg.id
         }
@@ -491,23 +499,23 @@ resource "google_service_account_iam_binding" "cloudbuild_sa" {
 }
 
 output "url" {
-  value = "http://${module.lb-http.external_ip}"
+  value       = "http://${module.lb-http.external_ip}"
   description = "The URL of the load balancer with the external IP address. Use this to set up custom domain mapping."
 }
 
 
 
 output "SUPERUSER_PASSWORD" {
-  value     = google_secret_manager_secret_version.SUPERUSER_PASSWORD.secret_data
-  sensitive = true
+  value       = google_secret_manager_secret_version.SUPERUSER_PASSWORD.secret_data
+  sensitive   = true
   description = "superper user password for admin access. Save it to set up superuser account."
 }
 
 
 output "sql_server_name" {
-  value     = google_sql_database_instance.instance.name
+  value = google_sql_database_instance.instance.name
 }
 
 output "private_ip_name" {
-  value     = local.private_ip_name
+  value = local.private_ip_name
 }
