@@ -13,3 +13,4 @@ docker-compose.debug.yml
 *.tfstate.*
 
 _pycache_/*
+.terraform.lock.hcl
