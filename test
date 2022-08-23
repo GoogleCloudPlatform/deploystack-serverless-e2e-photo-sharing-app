@@ -74,7 +74,7 @@ BASENAME=serverless-social-media
 gcloud config set project ${PROJECT}
 
 # terraform init
-# terraform apply -auto-approve -var project="${PROJECT}"  -var region="${REGION}" 
+terraform apply -auto-approve -var project="${PROJECT}"  -var region="${REGION}" 
 
 sql_server_name=$(terraform output -raw sql_server_name)
 private_ip_name=$(terraform output -raw private_ip_name)
