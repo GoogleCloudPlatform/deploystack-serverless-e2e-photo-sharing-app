@@ -585,7 +585,6 @@ output "cloud_run_url" {
   description = "The URL of Cloud Run."
 }
 
-
 output "SUPERUSER_PASSWORD" {
   value       = google_secret_manager_secret_version.SUPERUSER_PASSWORD.secret_data
   sensitive   = true

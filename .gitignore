@@ -16,7 +16,6 @@ docker-compose.debug.yml
 # variables file
 terraform.tfvars
 
-
 _pycache_/*
 .terraform.lock.hcl
 errFile
