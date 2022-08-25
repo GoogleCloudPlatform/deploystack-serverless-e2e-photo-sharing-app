@@ -1,0 +1,11 @@
+.env
+.vscode
+.DS_Store
+
+# docker-compose
+docker-compose.debug.yml
+
+# terraform
+terraform.tfstate
+terraform.tfstate.backup
+.terraform

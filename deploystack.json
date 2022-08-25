@@ -1,0 +1,9 @@
+{	"title":"BUILD A SEVERLESS END-TO-END PHOTO SHARING APPLICATION",
+	"duration":10,
+	"collect_project":true,
+	"collect_project_number":false,
+	"collect_region":true,
+	"region_type":"compute",
+	"region_default":"us-west1",
+	"collect_zone":false
+}

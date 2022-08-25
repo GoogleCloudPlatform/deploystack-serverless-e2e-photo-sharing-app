@@ -1,0 +1,21 @@
+.env
+.vscode
+.DS_Store
+core/config/credential.json
+
+# docker-compose
+docker-compose.debug.yml
+
+# .tfstate and lock files
+*.tfstate
+*.tfstate.*
+*.lock.*
+
+.terraform
+
+# variables file
+terraform.tfvars
+
+_pycache_/*
+.terraform.lock.hcl
+errFile
