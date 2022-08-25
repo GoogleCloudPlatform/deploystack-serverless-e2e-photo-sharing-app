@@ -52,6 +52,9 @@ To remove all billing components from the project
    ```
    gcloud auth application-default login
    ```
+   
+   To double check, run ```gcloud auth list```
+   To set active account, run gcloud config set account `ACCOUNT`
 
 3. Enable base services:
 
