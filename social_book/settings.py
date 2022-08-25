@@ -61,15 +61,18 @@ DEBUG = True # TODO: Change this to False in production
 PORT = 8080
 LOCAL_HOST_1 = '127.0.0.1'
 LOCAL_HOST_2 = '0.0.0.0'
+URL_IS_SET = False
 
 try:
     WEBSITE_URL_US_CENTRAL1 = get_secret("WEBSITE_URL_US_CENTRAL1", PROJECT_ID) 
     WEBSITE_URL_US_WEST1 = get_secret("WEBSITE_URL_US_WEST1", PROJECT_ID)
     WEBSITE_URL_US_EAST1 = get_secret("WEBSITE_URL_US_EAST1", PROJECT_ID)
     WEBSITE_GLOBAL_HOST = get_secret("EXTERNAL_IP", PROJECT_ID) 
+    URL_IS_SET = True
 except: 
     print("Secrets not set. Try running terraform before running this script.")
-    exit()
+    URL_IS_SET = False
+
 
 LOCAL_WEBSITE_URL = 'https://{LOCAL_HOST_2}:{PORT}/'
 
@@ -77,26 +80,32 @@ WEBSITE_HOST_US_CENTRAL1 = process_url(WEBSITE_URL_US_CENTRAL1)
 WEBSITE_HOST_US_WEST1 = process_url(WEBSITE_URL_US_WEST1)
 WEBSITE_HOST_US_EAST1 = process_url(WEBSITE_URL_US_EAST1)
 
-CSRF_TRUSTED_ORIGINS = [
-    WEBSITE_URL_US_CENTRAL1,
-    WEBSITE_URL_US_WEST1, 
-    WEBSITE_URL_US_EAST1,
-    LOCAL_WEBSITE_URL,
-]
+if URL_IS_SET:
+    CSRF_TRUSTED_ORIGINS = [
+        WEBSITE_URL_US_CENTRAL1,
+        WEBSITE_URL_US_WEST1, 
+        WEBSITE_URL_US_EAST1,
+        LOCAL_WEBSITE_URL,
+    ]
 
-ALLOWED_HOSTS = [
-    LOCAL_HOST_1,
-    LOCAL_HOST_2,
-    WEBSITE_HOST_US_CENTRAL1, 
-    WEBSITE_HOST_US_EAST1, 
-    WEBSITE_HOST_US_WEST1,
-    WEBSITE_GLOBAL_HOST,
-    'localhost'
-]
+    ALLOWED_HOSTS = [
+        LOCAL_HOST_1,
+        LOCAL_HOST_2,
+        WEBSITE_HOST_US_CENTRAL1, 
+        WEBSITE_HOST_US_EAST1, 
+        WEBSITE_HOST_US_WEST1,
+        WEBSITE_GLOBAL_HOST,
+        'localhost'
+    ]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        LOCAL_WEBSITE_URL
+    ]
+
+    ALLOWED_HOSTS = ['*']
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

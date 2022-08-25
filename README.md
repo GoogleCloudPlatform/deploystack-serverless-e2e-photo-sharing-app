@@ -68,10 +68,19 @@ To remove all billing components from the project
    gcloud builds submit
    ```
 
+5. Run ```./test```
+
    Check the output url from Cloud Run
 
-Run locally
+## Migrate your models: 
+* Go to Cloud SQL to get your connection name. It should be in the format: {PROJECT_ID}:{SQL_INSTANCE_REGION}:{SQL_INSTANCE_NAME}. 
+* Run ```PRODUCTION_MODE="local" python3 manage.py runserver --insecure 0.0.0.0:8080``` to test if the app can be run locally and connected to Cloud SQL. 
 
-Run ``PRODUCTION_MODE="production" python3 manage.py runserver --insecure 0.0.0.0:8080``
+* In another terminal, run ```./cloud_sql_proxy -instances={CONNECTION_NAME}=tcp:0.0.0.0:8002```
+* On your app's terminal, run ```PRODUCTION_MODE="local" python3 manage.py migrate```
+
+* Run step 4 and step 5 in *How to run* again to apply new changes on server.
+
+Have issues or questions, visit [Issues](https://github.com/GoogleCloudPlatform/deploystack-serverless-e2e-photo-sharing-app/issues).
 
 This is not an official Google product.

@@ -76,7 +76,7 @@ gcloud config set project ${PROJECT}
 # terraform init
 terraform apply -auto-approve -var project="${PROJECT}"  -var region="${REGION}" 
 
-sql_server_name=$(terraform output -raw sql_server_name)
+sql_server_name=$(terraform output -raw sql_database_name)
 private_ip_name=$(terraform output -raw private_ip_name)
 
 
@@ -107,17 +107,17 @@ section_close
 
 section_open "Testing Secrets"
     evalTest 'gcloud secrets describe django_settings --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/django_settings"
-    # evalTest 'gcloud secrets describe DATABASE_PASSWORD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_PASSWORD"
-    # evalTest 'gcloud secrets describe DATABASE_USER --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/DATABASE_USER"
-    # evalTest 'gcloud secrets describe DATABASE_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_NAME"
-    # evalTest 'gcloud secrets describe DATABASE_HOST_PROD --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/DATABASE_HOST_PROD"
-    # evalTest 'gcloud secrets describe DATABASE_PORT_PROD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_PORT_PROD"
-    # evalTest 'gcloud secrets describe EXTERNAL_IP --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/EXTERNAL_IP"
-    # evalTest 'gcloud secrets describe GS_BUCKET_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/GS_BUCKET_NAME"
-    # evalTest 'gcloud secrets describe PROJECT_ID --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/PROJECT_ID"
-    # evalTest 'gcloud secrets describe WEBSITE_URL_US_CENTRAL1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_CENTRAL1"
-    # evalTest 'gcloud secrets describe WEBSITE_URL_US_WEST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_WEST1"
-    # evalTest 'gcloud secrets describe WEBSITE_URL_US_EAST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_EAST1"
+    evalTest 'gcloud secrets describe DATABASE_PASSWORD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_PASSWORD"
+    evalTest 'gcloud secrets describe DATABASE_USER --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/DATABASE_USER"
+    evalTest 'gcloud secrets describe DATABASE_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_NAME"
+    evalTest 'gcloud secrets describe DATABASE_HOST_PROD --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/DATABASE_HOST_PROD"
+    evalTest 'gcloud secrets describe DATABASE_PORT_PROD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_PORT_PROD"
+    evalTest 'gcloud secrets describe EXTERNAL_IP --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/EXTERNAL_IP"
+    evalTest 'gcloud secrets describe GS_BUCKET_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/GS_BUCKET_NAME"
+    evalTest 'gcloud secrets describe PROJECT_ID --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/PROJECT_ID"
+    evalTest 'gcloud secrets describe WEBSITE_URL_US_CENTRAL1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_CENTRAL1"
+    evalTest 'gcloud secrets describe WEBSITE_URL_US_WEST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_WEST1"
+    evalTest 'gcloud secrets describe WEBSITE_URL_US_EAST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_EAST1"
     evalTest 'gcloud secrets describe SUPERUSER_PASSWORD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/SUPERUSER_PASSWORD"
 section_close
 
@@ -125,13 +125,10 @@ section_close
 
 
 section_open "Test Cloud Run Services"
-    evalTest 'gcloud run services describe $PROJECT --region=us-central1 --format="value(name)"' "$PROJECT "
-    evalTest 'gcloud run services describe $PROJECT --region=us-west1 --format="value(name)"' "$PROJECT "
-    evalTest 'gcloud run services describe $PROJECT --region=us-east1 --format="value(name)"' "$PROJECT "
+    evalTest 'gcloud run services describe $PROJECT --region=us-central1 --format="value(name)"' "$PROJECT"
+    evalTest 'gcloud run services describe $PROJECT --region=us-west1 --format="value(name)"' "$PROJECT"
+    evalTest 'gcloud run services describe $PROJECT --region=us-east1 --format="value(name)"' "$PROJECT"
 section_close
-
-
-
 
 # TODO: track down how these should be tested, when it successfully runs
 # # Step 11: Create Load Balancer to handle traffics from multiple regions 
@@ -146,14 +143,12 @@ section_close
 # }
 
 # TODO: Change these names as these names probably won't be accurate
-section_open "Test Load Balancer parts dont exist"
-    evalTest 'gcloud compute forwarding-rules describe  $BASENAME-http-lb-forwarding-rule --global --format="value(name)"'  $BASENAME-http-lb-forwarding-rule
-    evalTest 'gcloud compute target-http-proxies describe $BASENAME-lb-proxy  --global --format="value(name)"' $BASENAME-lb-proxy 
-    evalTest 'gcloud compute url-maps describe $BASENAME-lb --global --format="value(name)"' $BASENAME-lb
-    evalTest 'gcloud compute backend-services describe $BASENAME-service --global --format="value(name)"'  $BASENAME-service
-section_close
-
-
+# section_open "Test Load Balancer parts dont exist"
+#     # evalTest 'gcloud compute forwarding-rules describe  $BASENAME-http-lb-forwarding-rule --global --format="value(name)"'  $BASENAME-http-lb-forwarding-rule
+#     # evalTest 'gcloud compute target-http-proxies describe $BASENAME-lb-proxy  --global --format="value(name)"' $BASENAME-lb-proxy 
+#     # evalTest 'gcloud compute url-maps describe $BASENAME-lb --global --format="value(name)"' $BASENAME-lb
+#     evalTest 'gcloud compute backend-services describe $BASENAME-service --global --format="value(name)"'  $BASENAME-service
+# section_close
 
 exit
 
