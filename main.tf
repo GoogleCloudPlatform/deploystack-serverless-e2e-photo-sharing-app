@@ -269,12 +269,8 @@ resource "google_secret_manager_secret" "main" {
     "DATABASE_NAME" : google_sql_database.database.name,
     "DATABASE_HOST_PROD" : google_sql_database_instance.instance.private_ip_address,
     "DATABASE_PORT_PROD" : 3306,
-    # "EXTERNAL_IP" : module.lb-http.external_ip,
     "PROJECT_ID" : var.project,
     "GS_BUCKET_NAME" : var.project,
-    # "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
-    # "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
-    # "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url,
   }
   secret_id = each.key
   replication {
@@ -316,12 +312,8 @@ resource "google_secret_manager_secret_version" "main" {
     "DATABASE_NAME" : google_sql_database.database.name,
     "DATABASE_HOST_PROD" : google_sql_database_instance.instance.private_ip_address,
     "DATABASE_PORT_PROD" : 3306,
-    # "EXTERNAL_IP" : module.lb-http.external_ip,
     "PROJECT_ID" : var.project,
     "GS_BUCKET_NAME" : var.project,
-  #   "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
-  #   "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
-  # "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url, 
   }
   secret      = google_secret_manager_secret.main[each.key].id
   secret_data = each.value
@@ -330,9 +322,6 @@ resource "google_secret_manager_secret_version" "main" {
 resource "google_secret_manager_secret_version" "network" {
   for_each = {
     "EXTERNAL_IP" : module.lb-http.external_ip,
-  #   "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
-  #   "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
-  # "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url, 
   }
   secret      = google_secret_manager_secret.network[each.key].id
   secret_data = each.value
@@ -354,12 +343,8 @@ resource "google_secret_manager_secret_iam_binding" "main" {
     "DATABASE_NAME" : google_sql_database.database.name,
     "DATABASE_HOST_PROD" : google_sql_database_instance.instance.private_ip_address,
     "DATABASE_PORT_PROD" : 3306,
-    # "EXTERNAL_IP" : module.lb-http.external_ip,
     "PROJECT_ID" : var.project,
     "GS_BUCKET_NAME" : var.project,
-  #   "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
-  #   "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
-  # "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url, 
   }
   secret_id = google_secret_manager_secret.main[each.key].id
   role      = "roles/secretmanager.secretAccessor"
