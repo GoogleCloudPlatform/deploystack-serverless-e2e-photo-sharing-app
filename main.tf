@@ -142,8 +142,6 @@ resource "google_project_iam_member" "serviceagent" {
   role    = "roles/editor"
   member  = local.serviceagent_serviceaccount
 
-}
-
 resource "google_vpc_access_connector" "connector" {
   for_each      = { "us-west1" : 8, "us-central1" : 9, "us-east1" : 10 }
   name          = "vpc-con-${each.key}"
