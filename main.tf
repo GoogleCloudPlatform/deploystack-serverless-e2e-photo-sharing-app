@@ -55,6 +55,15 @@ data "google_project" "project" {
   project_id = var.project
 }
 
+locals {
+  serviceagent_serviceaccount = "serviceAccount:${data.google_project.project.number}@cloudservices.gserviceaccount.com"
+  cloudbuild_serviceaccount   = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  django_serviceaccount       = "serviceAccount:${google_service_account.django.email}"
+  private_network_name        = "network-${random_id.name.hex}"
+  private_ip_name             = "private-ip-${random_id.name.hex}"
+  sql_database_name            = "sql-database-${random_id.name.hex}"
+}
+
 # Step 2: Activate service APIs
 resource "google_project_service" "run" {
   service            = "run.googleapis.com"
@@ -102,6 +111,13 @@ resource "google_project_service" "servicenetworking" {
 }
 
 
+resource "google_project_iam_member" "serviceagent" {
+  provider = google-beta
+  project = data.google_project.project.number
+  role    = "roles/editor"
+  member  = local.serviceagent_serviceaccount
+}
+
 # Step 3: Create compute networks
 # ------------------------------------------------------------------------------
 # SEVERLESS VPC CONNECTOR FOR CLOUD SQL
@@ -134,17 +150,31 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 }
 
 
-resource "google_project_iam_member" "serviceagent" {
-  project = data.google_project.project.number
-  role    = "roles/editor"
-  member  = local.serviceagent_serviceaccount
+
+
+resource "google_vpc_access_connector" "us-west1" {
+  name          = "vpc-con-us-west1"
+  ip_cidr_range = "10.8.0.0/28"
+  region        = "us-west1"
+  max_throughput= 300
+  network       = google_compute_network.main.name
+  depends_on    = [google_project_service.vpcaccess, google_project_iam_member.serviceagent]
 }
 
-resource "google_vpc_access_connector" "connector" {
-  for_each      = { "us-west1" : 8, "us-central1" : 9, "us-east1" : 10 }
-  name          = "vpc-con-${each.key}"
-  ip_cidr_range = "10.${each.value}.0.0/28"
-  region        = each.key
+resource "google_vpc_access_connector" "us-central1" {
+  name          = "vpc-con-us-central1"
+  ip_cidr_range = "10.9.0.0/28"
+  region        = "us-central1"
+  max_throughput= 300
+  network       = google_compute_network.main.name
+  depends_on    = [google_project_service.vpcaccess, google_project_iam_member.serviceagent]
+}
+
+resource "google_vpc_access_connector" "us-east1" {
+  name          = "vpc-con-us-east1"
+  ip_cidr_range = "10.10.0.0/28"
+  region        = "us-east1"
+  max_throughput= 300
   network       = google_compute_network.main.name
   depends_on    = [google_project_service.vpcaccess, google_project_iam_member.serviceagent]
 }
@@ -179,7 +209,7 @@ resource "google_sql_database_instance" "instance" {
   database_version = "MYSQL_8_0"
   region           = var.region
   project          = var.project
-  depends_on       = [google_vpc_access_connector.connector]
+  depends_on       = [google_vpc_access_connector.us-central1, google_vpc_access_connector.us-east1, google_vpc_access_connector.us-west1]
   settings {
     tier = "db-f1-micro"
     ip_configuration {
@@ -251,16 +281,6 @@ resource "google_secret_manager_secret_iam_binding" "django_settings" {
   members   = [local.cloudbuild_serviceaccount, local.django_serviceaccount]
 }
 
-locals {
-  serviceagent_serviceaccount = "serviceAccount:${data.google_project.project.number}@cloudservices.gserviceaccount.com"
-  cloudbuild_serviceaccount   = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
-  django_serviceaccount       = "serviceAccount:${google_service_account.django.email}"
-  private_network_name        = "network-${random_id.name.hex}"
-  private_ip_name             = "private-ip-${random_id.name.hex}"
-  sql_database_name            = "sql-database-${random_id.name.hex}"
-}
-
-
 # Step 9: Populate secrets
 resource "google_secret_manager_secret" "main" {
   for_each = {
@@ -289,20 +309,19 @@ resource "google_secret_manager_secret" "network" {
   replication {
     automatic = true
   }
-  depends_on = [module.lb-http, google_compute_network.main, google_cloud_run_service.service]
+  depends_on = [module.lb-http, google_compute_network.main]
 }
 
 resource "google_secret_manager_secret" "url" {
   for_each = {
-    "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
-    "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
-    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url,
+    "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.us-central1.status[0].url,
+    "WEBSITE_URL_US_WEST1" : google_cloud_run_service.us-west1.status[0].url,
+    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.us-east1.status[0].url,
   }
   secret_id = each.key
   replication {
     automatic = true
   }
-  depends_on = [google_cloud_run_service.service]
 }
 
 
@@ -329,9 +348,9 @@ resource "google_secret_manager_secret_version" "network" {
 
 resource "google_secret_manager_secret_version" "url" {
   for_each = {
-    "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
-    "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
-    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url, 
+    "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.us-central1.status[0].url,
+    "WEBSITE_URL_US_WEST1" : google_cloud_run_service.us-west1.status[0].url,
+    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.us-east1.status[0].url, 
   }
   secret      = google_secret_manager_secret.url[each.key].id
   secret_data = each.value
@@ -362,9 +381,9 @@ resource "google_secret_manager_secret_iam_binding" "network" {
 
 resource "google_secret_manager_secret_iam_binding" "url" {
   for_each = { 
-    "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
-    "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
-    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url, 
+    "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.us-central1.status[0].url,
+    "WEBSITE_URL_US_WEST1" : google_cloud_run_service.us-west1.status[0].url,
+    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.us-east1.status[0].url, 
   }
   secret_id = google_secret_manager_secret.url[each.key].id
   role      = "roles/secretmanager.secretAccessor"
@@ -424,23 +443,16 @@ resource "null_resource" "cloudbuild_api" {
 
 
 # Step 10: Create Cloud Run service
-data "google_cloud_run_locations" "default" {}
 
-resource "google_cloud_run_service" "service" {
-  for_each                   = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
+resource "google_cloud_run_service" "us-west1" {
   name                       = var.project
-  location                   = each.value
+  location                   = "us-west1" 
   project                    = var.project
   autogenerate_revision_name = true
   depends_on = [
-    # google_sql_database_instance.instance,
-                # google_container_registry.main,
-                # google_storage_bucket_iam_member.repo_public, 
-                # google_secret_manager_secret.django_settings
-                # google_vpc_access_connector.connector,
                 google_service_account.django, 
                 google_sql_database_instance.instance,
-                google_vpc_access_connector.connector,
+                google_vpc_access_connector.us-central1, google_vpc_access_connector.us-east1, google_vpc_access_connector.us-west1,
                 ]
 
   template {
@@ -460,7 +472,89 @@ resource "google_cloud_run_service" "service" {
         "autoscaling.knative.dev/maxScale"        = "100"
         "run.googleapis.com/cloudsql-instances"   = google_sql_database_instance.instance.connection_name
         "run.googleapis.com/client-name"          = "terraform"
-        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[each.key].name
+        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.us-west1.name
+        "run.googleapis.com/vpc-access-egress"    = "all-traffic"
+      }
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+}
+
+
+resource "google_cloud_run_service" "us-central1" {
+  name                       = var.project
+  location                   = "us-central1"
+  project                    = var.project
+  autogenerate_revision_name = true
+  depends_on = [
+                google_service_account.django, 
+                google_sql_database_instance.instance,
+                google_vpc_access_connector.us-central1, google_vpc_access_connector.us-east1, google_vpc_access_connector.us-west1,
+                ]
+
+  template {
+    spec {
+      service_account_name = google_service_account.django.email
+      containers {
+        image = "gcr.io/${var.project}/${var.service}:latest"
+        env {
+          name  = "PROJECT_ID"
+          value = var.project
+        }
+      }
+    }
+
+    metadata {
+      annotations = {
+        "autoscaling.knative.dev/maxScale"        = "100"
+        "run.googleapis.com/cloudsql-instances"   = google_sql_database_instance.instance.connection_name
+        "run.googleapis.com/client-name"          = "terraform"
+        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.us-central1.name
+        "run.googleapis.com/vpc-access-egress"    = "all-traffic"
+      }
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+}
+
+
+resource "google_cloud_run_service" "us-east1" {
+  name                       = var.project
+  location                   = "us-east1"
+  project                    = var.project
+  autogenerate_revision_name = true
+  depends_on = [
+                google_service_account.django, 
+                google_sql_database_instance.instance,
+                google_vpc_access_connector.us-central1, google_vpc_access_connector.us-east1, google_vpc_access_connector.us-west1,
+                ]
+
+  template {
+    spec {
+      service_account_name = google_service_account.django.email
+      containers {
+        image = "gcr.io/${var.project}/${var.service}:latest"
+        env {
+          name  = "PROJECT_ID"
+          value = var.project
+        }
+      }
+    }
+
+    metadata {
+      annotations = {
+        "autoscaling.knative.dev/maxScale"        = "100"
+        "run.googleapis.com/cloudsql-instances"   = google_sql_database_instance.instance.connection_name
+        "run.googleapis.com/client-name"          = "terraform"
+        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.us-east1.name
         "run.googleapis.com/vpc-access-egress"    = "all-traffic"
       }
     }
@@ -481,26 +575,55 @@ data "google_iam_policy" "noauth" {
   }
 }
 
-resource "google_cloud_run_service_iam_policy" "noauth" {
-  for_each = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
-  location = google_cloud_run_service.service[each.key].location
-  project  = google_cloud_run_service.service[each.key].project
-  service  = google_cloud_run_service.service[each.key].name
-
+resource "google_cloud_run_service_iam_policy" "us-west1" {
+  location = google_cloud_run_service.us-west1.location
+  project  = google_cloud_run_service.us-west1.project
+  service  = google_cloud_run_service.us-west1.name
+  policy_data = data.google_iam_policy.noauth.policy_data
+}
+resource "google_cloud_run_service_iam_policy" "us-central1" {
+  location = google_cloud_run_service.us-central1.location
+  project  = google_cloud_run_service.us-central1.project
+  service  = google_cloud_run_service.us-central1.name
+  policy_data = data.google_iam_policy.noauth.policy_data
+}
+resource "google_cloud_run_service_iam_policy" "us-east1" {
+  location = google_cloud_run_service.us-east1.location
+  project  = google_cloud_run_service.us-east1.project
+  service  = google_cloud_run_service.us-east1.name
   policy_data = data.google_iam_policy.noauth.policy_data
 }
 
 
 # Step 11: Create Load Balancer to handle traffics from multiple regions 
-resource "google_compute_region_network_endpoint_group" "default" {
-  for_each              = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
-  name                  = "${var.project}--neg--${each.key}"
+resource "google_compute_region_network_endpoint_group" "us-west1" {
+  name                  = "${var.project}--neg--us-west1"
   network_endpoint_type = "SERVERLESS"
-  region                = google_cloud_run_service.service[each.key].location
+  region                = google_cloud_run_service.us-west1.location
   cloud_run {
-    service = google_cloud_run_service.service[each.key].name
+    service = google_cloud_run_service.us-west1.name
   }
-  depends_on = [google_cloud_run_service.service]
+  depends_on = [google_cloud_run_service.us-west1]
+}
+
+resource "google_compute_region_network_endpoint_group" "us-central1" {
+  name                  = "${var.project}--neg--us-central1"
+  network_endpoint_type = "SERVERLESS"
+  region                = google_cloud_run_service.us-central1.location
+  cloud_run {
+    service = google_cloud_run_service.us-central1.name
+  }
+  depends_on = [google_cloud_run_service.us-central1]
+}
+
+resource "google_compute_region_network_endpoint_group" "us-east1" {
+  name                  = "${var.project}--neg--us-east1"
+  network_endpoint_type = "SERVERLESS"
+  region                = google_cloud_run_service.us-east1.location
+  cloud_run {
+    service = google_cloud_run_service.us-east1.name
+  }
+  depends_on = [google_cloud_run_service.us-east1]
 }
 
 module "lb-http" {
@@ -526,9 +649,14 @@ module "lb-http" {
       }
 
       groups = [
-        for neg in google_compute_region_network_endpoint_group.default :
         {
-          group = neg.id
+          group = google_compute_region_network_endpoint_group.us-west1.id
+        },
+         {
+          group = google_compute_region_network_endpoint_group.us-central1.id
+        },
+         {
+          group = google_compute_region_network_endpoint_group.us-east1.id
         }
       ]
 
@@ -566,7 +694,7 @@ output "url" {
 }
 
 output "cloud_run_url" {
-  value       = google_cloud_run_service.service["us-central1"].status[0].url
+  value       = google_cloud_run_service.us-central1.status[0].url
   description = "The URL of Cloud Run."
 }
 

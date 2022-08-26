@@ -75,6 +75,7 @@ gcloud config set project ${PROJECT}
 
 terraform init
 terraform apply -auto-approve -var project="${PROJECT}"  -var region="${REGION}" 
+exit
 
 sql_server_name=$(terraform output -raw sql_database_name)
 private_ip_name=$(terraform output -raw private_ip_name)
@@ -143,12 +144,12 @@ section_close
 # }
 
 # TODO: Change these names as these names probably won't be accurate
-# section_open "Test Load Balancer parts dont exist"
-#     # evalTest 'gcloud compute forwarding-rules describe  $BASENAME-http-lb-forwarding-rule --global --format="value(name)"'  $BASENAME-http-lb-forwarding-rule
-#     # evalTest 'gcloud compute target-http-proxies describe $BASENAME-lb-proxy  --global --format="value(name)"' $BASENAME-lb-proxy 
-#     # evalTest 'gcloud compute url-maps describe $BASENAME-lb --global --format="value(name)"' $BASENAME-lb
-#     evalTest 'gcloud compute backend-services describe $BASENAME-service --global --format="value(name)"'  $BASENAME-service
-# section_close
+section_open "Test Load Balancer parts dont exist"
+    # evalTest 'gcloud compute forwarding-rules describe  $BASENAME-http-lb-forwarding-rule --global --format="value(name)"'  $BASENAME-http-lb-forwarding-rule
+    # evalTest 'gcloud compute target-http-proxies describe $BASENAME-lb-proxy  --global --format="value(name)"' $BASENAME-lb-proxy 
+    # evalTest 'gcloud compute url-maps describe $BASENAME-lb --global --format="value(name)"' $BASENAME-lb
+    evalTest 'gcloud compute backend-services describe $BASENAME-service --global --format="value(name)"'  $BASENAME-service
+section_close
 
 exit
 
@@ -184,17 +185,17 @@ section_close
 
 section_open "Testing Secrets don't exist"
     evalTest 'gcloud secrets describe django_settings --format="value(name)" | xargs' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe DATABASE_PASSWORD --format="value(name)"' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe DATABASE_USER --format="value(name)" | xargs' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe DATABASE_NAME --format="value(name)"' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe DATABASE_HOST_PROD --format="value(name)" | xargs' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe DATABASE_PORT_PROD --format="value(name)"' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe EXTERNAL_IP --format="value(name)" | xargs' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe GS_BUCKET_NAME --format="value(name)"' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe PROJECT_ID --format="value(name)" | xargs' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe WEBSITE_URL_US_CENTRAL1 --format="value(name)"' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe WEBSITE_URL_US_WEST1 --format="value(name)"' "EXPECTERROR"
-    # evalTest 'gcloud secrets describe WEBSITE_URL_US_EAST1 --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud secrets describe DATABASE_PASSWORD --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud secrets describe DATABASE_USER --format="value(name)" | xargs' "EXPECTERROR"
+    evalTest 'gcloud secrets describe DATABASE_NAME --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud secrets describe DATABASE_HOST_PROD --format="value(name)" | xargs' "EXPECTERROR"
+    evalTest 'gcloud secrets describe DATABASE_PORT_PROD --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud secrets describe EXTERNAL_IP --format="value(name)" | xargs' "EXPECTERROR"
+    evalTest 'gcloud secrets describe GS_BUCKET_NAME --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud secrets describe PROJECT_ID --format="value(name)" | xargs' "EXPECTERROR"
+    evalTest 'gcloud secrets describe WEBSITE_URL_US_CENTRAL1 --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud secrets describe WEBSITE_URL_US_WEST1 --format="value(name)"' "EXPECTERROR"
+    evalTest 'gcloud secrets describe WEBSITE_URL_US_EAST1 --format="value(name)"' "EXPECTERROR"
     evalTest 'gcloud secrets describe SUPERUSER_PASSWORD --format="value(name)"' "EXPECTERROR"
 section_close
 
