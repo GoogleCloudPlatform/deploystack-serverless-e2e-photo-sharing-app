@@ -20,3 +20,4 @@ _pycache_/*
 .terraform.lock.hcl
 errFile
 clean
+clean
