@@ -73,9 +73,9 @@ BASENAME=serverless-social-media
 
 gcloud config set project ${PROJECT}
 
-# terraform init
-terraform apply -auto-approve -var project="${PROJECT}"  -var region="${REGION}" 
-
+terraform init
+terraform apply  -var project="${PROJECT}"  -var region="${REGION}" 
+exit
 sql_server_name=$(terraform output -raw sql_database_name)
 private_ip_name=$(terraform output -raw private_ip_name)
 
@@ -112,12 +112,12 @@ section_open "Testing Secrets"
     evalTest 'gcloud secrets describe DATABASE_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_NAME"
     evalTest 'gcloud secrets describe DATABASE_HOST_PROD --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/DATABASE_HOST_PROD"
     evalTest 'gcloud secrets describe DATABASE_PORT_PROD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/DATABASE_PORT_PROD"
-    evalTest 'gcloud secrets describe EXTERNAL_IP --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/EXTERNAL_IP"
+    # evalTest 'gcloud secrets describe EXTERNAL_IP --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/EXTERNAL_IP"
     evalTest 'gcloud secrets describe GS_BUCKET_NAME --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/GS_BUCKET_NAME"
     evalTest 'gcloud secrets describe PROJECT_ID --format="value(name)" | xargs' "projects/$PROJECT_NUMBER/secrets/PROJECT_ID"
-    evalTest 'gcloud secrets describe WEBSITE_URL_US_CENTRAL1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_CENTRAL1"
-    evalTest 'gcloud secrets describe WEBSITE_URL_US_WEST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_WEST1"
-    evalTest 'gcloud secrets describe WEBSITE_URL_US_EAST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_EAST1"
+    # evalTest 'gcloud secrets describe WEBSITE_URL_US_CENTRAL1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_CENTRAL1"
+    # evalTest 'gcloud secrets describe WEBSITE_URL_US_WEST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_WEST1"
+    # evalTest 'gcloud secrets describe WEBSITE_URL_US_EAST1 --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/WEBSITE_URL_US_EAST1"
     evalTest 'gcloud secrets describe SUPERUSER_PASSWORD --format="value(name)"' "projects/$PROJECT_NUMBER/secrets/SUPERUSER_PASSWORD"
 section_close
 

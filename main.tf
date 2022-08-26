@@ -138,6 +138,7 @@ resource "google_project_iam_member" "serviceagent" {
   project = data.google_project.project.number
   role    = "roles/editor"
   member  = local.serviceagent_serviceaccount
+
 }
 
 resource "google_vpc_access_connector" "connector" {
@@ -258,6 +259,8 @@ locals {
   private_network_name        = "network-${random_id.name.hex}"
   private_ip_name             = "private-ip-${random_id.name.hex}"
   sql_database_name            = "sql-database-${random_id.name.hex}"
+  runlocations = ["us-west1","us-central1", "us-east1"]
+
 }
 
 
@@ -439,10 +442,10 @@ resource "null_resource" "cloudbuild_api" {
 
 
 # Step 10: Create Cloud Run service
-data "google_cloud_run_locations" "default" {}
+# data "google_cloud_run_locations" "default" {}
 
 resource "google_cloud_run_service" "service" {
-  for_each                   = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
+  for_each                   = toset([for location in local.runlocations : location if can(regex("us-(?:west|central|east)1", location))])
   name                       = var.project
   location                   = each.value
   project                    = var.project
@@ -497,7 +500,7 @@ data "google_iam_policy" "noauth" {
 }
 
 resource "google_cloud_run_service_iam_policy" "noauth" {
-  for_each = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
+  for_each = toset([for location in local.runlocations : location if can(regex("us-(?:west|central|east)1", location))])
   location = google_cloud_run_service.service[each.key].location
   project  = google_cloud_run_service.service[each.key].project
   service  = google_cloud_run_service.service[each.key].name
@@ -508,7 +511,7 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
 
 # Step 11: Create Load Balancer to handle traffics from multiple regions 
 resource "google_compute_region_network_endpoint_group" "default" {
-  for_each              = toset([for location in data.google_cloud_run_locations.default.locations : location if can(regex("us-(?:west|central|east)1", location))])
+  for_each              = toset([for location in local.runlocations : location if can(regex("us-(?:west|central|east)1", location))])
   name                  = "${var.project}--neg--${each.key}"
   network_endpoint_type = "SERVERLESS"
   region                = google_cloud_run_service.service[each.key].location
@@ -559,13 +562,26 @@ module "lb-http" {
 
 
 # Step 12: Grant access to the database
-resource "google_project_iam_binding" "service_permissions" {
+resource "google_project_iam_member" "service_permissions_cb_django" {
   for_each = toset([
     "run.admin", "cloudsql.client", "editor", "secretmanager.admin"
   ])
 
+  
+
   role    = "roles/${each.key}"
-  members = [local.cloudbuild_serviceaccount, local.django_serviceaccount]
+  member = local.django_serviceaccount
+}
+
+resource "google_project_iam_member" "service_permissions_cb" {
+  for_each = toset([
+    "run.admin", "cloudsql.client", "editor", "secretmanager.admin"
+  ])
+
+  
+
+  role    = "roles/${each.key}"
+  member = local.cloudbuild_serviceaccount
 }
 
 resource "google_service_account_iam_binding" "cloudbuild_sa" {
