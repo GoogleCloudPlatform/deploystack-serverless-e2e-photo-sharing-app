@@ -101,6 +101,10 @@ resource "google_project_service" "servicenetworking" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "iam" {
+  service            = "iam.googleapis.com"
+  disable_on_destroy = false
+}
 
 # Step 3: Create compute networks
 # ------------------------------------------------------------------------------
@@ -156,6 +160,9 @@ resource "google_vpc_access_connector" "connector" {
 # Step 4: Create a custom Service Account
 resource "google_service_account" "django" {
   account_id = "django"
+  depends_on = [
+    google_project_service.iam
+  ]
 }
 
 # Step 5: Create the database
