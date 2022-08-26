@@ -7,6 +7,10 @@ CYAN='\033[0;36m'
 BCYAN='\033[1;36m'
 NC='\033[0m' # No Color
 DIVIDER=$(printf %"$(tput cols)"s | tr " " "*")
+if [ -z "$DIVIDER" ]
+then
+      DIVIDER=$(printf %"80"s | tr " " "*")
+fi
 DIVIDER+="\n"
 
 function get_project_id() {
