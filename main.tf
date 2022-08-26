@@ -439,10 +439,6 @@ resource "google_cloud_run_service" "service" {
   autogenerate_revision_name = true
   depends_on = [
     # google_sql_database_instance.instance,
-    # google_container_registry.main,
-    # google_storage_bucket_iam_member.repo_public, 
-    # google_secret_manager_secret.django_settings
-    # google_vpc_access_connector.connector,
     google_service_account.django,
     google_sql_database_instance.instance,
     google_vpc_access_connector.connector,

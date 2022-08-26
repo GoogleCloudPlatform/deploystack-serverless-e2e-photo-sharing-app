@@ -137,7 +137,7 @@ section_close
 
 terraform destroy -var project="${PROJECT}" -var region="${REGION}" -auto-approve
 
-section_open "Test Load Balancer parts exist"
+section_open "Test Load Balancer parts dont exist"
     evalTest 'gcloud compute forwarding-rules describe  $PROJECT --global --format="value(name)"' "EXPECTERROR"
     evalTest 'gcloud compute target-http-proxies describe $PROJECT-http-proxy  --global --format="value(name)"' "EXPECTERROR"
     evalTest 'gcloud compute url-maps describe $PROJECT-url-map --global --format="value(name)"' "EXPECTERROR"
