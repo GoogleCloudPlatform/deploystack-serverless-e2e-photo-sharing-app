@@ -106,6 +106,9 @@ resource "google_project_service" "servicenetworking" {
 # ------------------------------------------------------------------------------
 # SEVERLESS VPC CONNECTOR FOR CLOUD SQL
 # ------------------------------------------------------------------------------
+# I hate the random network name, but it's required cause there seems to be a bug
+# in Google Cloud's networking
+# https://issuetracker.google.com/issues/186792016
 resource "google_compute_network" "main" {
   provider = google
   name     = "social-media-network-${random_id.name.hex}"
