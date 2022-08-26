@@ -110,8 +110,8 @@ resource "google_project_service" "servicenetworking" {
 # in Google Cloud's networking
 # https://issuetracker.google.com/issues/186792016
 resource "google_compute_network" "main" {
-  provider = google
-  name     = "social-media-network-${random_id.name.hex}"
+  provider   = google
+  name       = "social-media-network-${random_id.name.hex}"
   depends_on = [google_project_iam_member.serviceagent]
 }
 
@@ -179,7 +179,7 @@ resource "random_id" "db_name_suffix" {
 }
 
 resource "google_sql_database_instance" "instance" {
-  name             = "${local.sql_database_name}"
+  name             = local.sql_database_name
   database_version = "MYSQL_8_0"
   region           = var.region
   project          = var.project
@@ -261,8 +261,8 @@ locals {
   django_serviceaccount       = "serviceAccount:${google_service_account.django.email}"
   private_network_name        = "network-${random_id.name.hex}"
   private_ip_name             = "private-ip-${random_id.name.hex}"
-  sql_database_name            = "sql-database-${random_id.name.hex}"
-  runlocations = ["us-west1","us-central1", "us-east1"]
+  sql_database_name           = "sql-database-${random_id.name.hex}"
+  runlocations                = ["us-west1", "us-central1", "us-east1"]
 }
 
 
@@ -336,7 +336,7 @@ resource "google_secret_manager_secret_version" "url" {
   for_each = {
     "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
     "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
-    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url, 
+    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url,
   }
   secret      = google_secret_manager_secret.url[each.key].id
   secret_data = each.value
@@ -357,7 +357,7 @@ resource "google_secret_manager_secret_iam_binding" "main" {
 }
 
 resource "google_secret_manager_secret_iam_binding" "network" {
-  for_each = { 
+  for_each = {
     "EXTERNAL_IP" : module.lb-http.external_ip,
   }
   secret_id = google_secret_manager_secret.network[each.key].id
@@ -366,10 +366,10 @@ resource "google_secret_manager_secret_iam_binding" "network" {
 }
 
 resource "google_secret_manager_secret_iam_binding" "url" {
-  for_each = { 
+  for_each = {
     "WEBSITE_URL_US_CENTRAL1" : google_cloud_run_service.service["us-central1"].status[0].url,
     "WEBSITE_URL_US_WEST1" : google_cloud_run_service.service["us-west1"].status[0].url,
-    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url, 
+    "WEBSITE_URL_US_EAST1" : google_cloud_run_service.service["us-east1"].status[0].url,
   }
   secret_id = google_secret_manager_secret.url[each.key].id
   role      = "roles/secretmanager.secretAccessor"
@@ -439,14 +439,14 @@ resource "google_cloud_run_service" "service" {
   autogenerate_revision_name = true
   depends_on = [
     # google_sql_database_instance.instance,
-                # google_container_registry.main,
-                # google_storage_bucket_iam_member.repo_public, 
-                # google_secret_manager_secret.django_settings
-                # google_vpc_access_connector.connector,
-                google_service_account.django, 
-                google_sql_database_instance.instance,
-                google_vpc_access_connector.connector,
-                ]
+    # google_container_registry.main,
+    # google_storage_bucket_iam_member.repo_public, 
+    # google_secret_manager_secret.django_settings
+    # google_vpc_access_connector.connector,
+    google_service_account.django,
+    google_sql_database_instance.instance,
+    google_vpc_access_connector.connector,
+  ]
 
   template {
     spec {
@@ -554,9 +554,9 @@ resource "google_project_iam_member" "service_permissions_cb_django" {
     "run.admin", "cloudsql.client", "editor", "secretmanager.admin"
   ])
 
-  
 
-  role    = "roles/${each.key}"
+
+  role   = "roles/${each.key}"
   member = local.django_serviceaccount
 }
 
@@ -565,9 +565,9 @@ resource "google_project_iam_member" "service_permissions_cb" {
     "run.admin", "cloudsql.client", "editor", "secretmanager.admin"
   ])
 
-  
 
-  role    = "roles/${each.key}"
+
+  role   = "roles/${each.key}"
   member = local.cloudbuild_serviceaccount
 }
 
