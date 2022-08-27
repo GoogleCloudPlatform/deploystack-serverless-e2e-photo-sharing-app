@@ -1,21 +1,25 @@
 # Build an serverless end-to-end photo sharing application with Google Cloud
 
-This repo will help you create an end-to-end social media web app with Google Cloud and Terraform
+This deploystack will help you create a scalable end-to-end photo-sharing application with 11 Google Cloud, Terraform, and Django. 
+
+## Architecture
+
 ![architecture](architecture.png)
 
-Components created: 
-* Cloud Run - which will run the app as the main server
-* Cloud SQL - To store relational database such as user info, posts
-* Cloud Storage - To store non-relational database such as post media 
-* Cloud Load Balancer - To server traffic with multiple regions 
-* Cloud DNS - To map custom domain
-* Cloud Build - To automatically deploy your app from gcloud
-* Secret Manager - To improve the security of the app
-* Cloud VPC - To connect Cloud SQL with Cloud Run via Private improve
-* Cloud DNS - to store static cache for faster connections 
-* Translation API - to translate the post caption if it is in another language
+**Components created:** 
+* Cloud Run - which will run the app as the main server.
+* Cloud SQL - To store relational database such as user info, posts.
+* Cloud Storage - To store non-relational database such as post media. 
+* Cloud Load Balancer - To server traffic with multiple regions. 
+* Cloud DNS - To map custom domain and handle requests from your local machines everytime you go to the url.  
+* Cloud Build - apply DevOps CI/CD to automatically deploy your app from gcloud.
+* Secret Manager - To improve the security of the app.
+* Cloud VPC - To connect Cloud SQL with Cloud Run via private network. 
+* Cloud DNS - to store static cache for faster connections.
+* Translation API - to translate the post caption if it is in another language.
+* Container Registry - to store, manage, and secure your Docker container images.
 
-What you can do with this app: 
+**What you can do with this app:**
 * Create post with media and caption
 * Search users
 * View newsfeed
@@ -40,14 +44,14 @@ To remove all billing components from the project
 2. Typing `deploystack uninstall`
 
 ## How to run 
-1. Create project with billing enabled, and configure gcloud for that project
+**1. Create project with billing enabled, and configure gcloud for that project**
 
    ```
    export PROJECT_ID=foobar
    gcloud config set project $PROJECT_ID
    ```
 
-2. Configure default credentials (allows Terraform to apply changes):
+**2. Configure default credentials (allows Terraform to apply changes):**
 
    ```
    gcloud auth application-default login
@@ -56,7 +60,7 @@ To remove all billing components from the project
    To double check, run ```gcloud auth list```
    To set active account, run gcloud config set account `ACCOUNT`
 
-3. Enable base services:
+**3. Enable base services:**
 
    ```
    gcloud services enable \
@@ -65,25 +69,36 @@ To remove all billing components from the project
      vpcaccess.googleapis.com
    ```
 
-4. Build base image
+**4. Build base image**
 
    ```
    gcloud builds submit
    ```
 
-5. Run ```./test```
+**5. Run** ```./test```
 
    Check the output url from Cloud Run
 
-## Migrate your models: 
-* Go to Cloud SQL to get your connection name. It should be in the format: {PROJECT_ID}:{SQL_INSTANCE_REGION}:{SQL_INSTANCE_NAME}. 
-* Run ```PRODUCTION_MODE="local" python3 manage.py runserver --insecure 0.0.0.0:8080``` to test if the app can be run locally and connected to Cloud SQL. 
+## Local deployment: 
+1. Go to Cloud SQL to get your connection name. It should be in the format: ```{PROJECT_ID}:{SQL_INSTANCE_REGION}:{SQL_INSTANCE_NAME}```
+2. In another terminal, run ```./cloud_sql_proxy -instances={CONNECTION_NAME}=tcp:0.0.0.0:8002```
+3. Run ```PRODUCTION_MODE="local" python3 manage.py runserver --insecure 0.0.0.0:8080``` to run the app locally and connect to Cloud SQL.
 
-* In another terminal, run ```./cloud_sql_proxy -instances={CONNECTION_NAME}=tcp:0.0.0.0:8002```
-* On your app's terminal, run ```PRODUCTION_MODE="local" python3 manage.py migrate```
+### Django models migration 
+1. Follow steps in **local deployment** 
+2. On your app's terminal, run**```PRODUCTION_MODE="local" python3 manage.py migrate```
+3. Build base image to push new changes to Container Registry 
 
-* Run step 4 and step 5 in *How to run* again to apply new changes on server.
+   ```
+   gcloud builds submit
+   ```
 
+4. Run ```./test```
+
+   Check the output url from Cloud Run with new changes
+
+
+---
 Have issues or questions, visit [Issues](https://github.com/GoogleCloudPlatform/deploystack-serverless-e2e-photo-sharing-app/issues).
 
 This is not an official Google product.
