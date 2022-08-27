@@ -267,6 +267,7 @@ locals {
   django_serviceaccount       = "serviceAccount:${google_service_account.django.email}"
   private_network_name        = "network-${random_id.name.hex}"
   private_ip_name             = "private-ip-${random_id.name.hex}"
+  # TODO: prefix all of these properly
   sql_database_name           = "sql-database-${random_id.name.hex}"
   runlocations                = ["us-west1", "us-central1", "us-east1"]
 }

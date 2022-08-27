@@ -16,4 +16,4 @@ steps:
    - name: 'gcr.io/cloudshell-images/cloudshell:latest'
      entrypoint: bash
      args: [ './test' ]
-timeout: 2200s
+timeout: 4200s

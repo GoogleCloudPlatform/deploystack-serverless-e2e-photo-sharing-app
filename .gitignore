@@ -21,3 +21,4 @@ _pycache_/*
 errFile
 clean
 clean
+test.sh
