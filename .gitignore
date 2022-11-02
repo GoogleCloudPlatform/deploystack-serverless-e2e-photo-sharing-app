@@ -19,6 +19,4 @@ terraform.tfvars
 _pycache_/*
 .terraform.lock.hcl
 errFile
-clean
-clean
 test.sh
