@@ -1,4 +1,5 @@
 {	"title":"BUILD A SEVERLESS END-TO-END PHOTO SHARING APPLICATION",
+	"name": "serverless-e2e-photo-sharing-app",
 	"duration":10,
 	"collect_project":true,
 	"collect_project_number":false,
