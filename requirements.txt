@@ -3,7 +3,7 @@ attrs==21.4.0
 autopep8==1.6.0
 CacheControl==0.12.11
 cachetools==5.2.0
-certifi==2022.6.15
+certifi==2023.7.22
 charset-normalizer==2.0.12
 contextlib2==21.6.0
 distlib==0.3.4
