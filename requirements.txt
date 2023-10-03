@@ -57,6 +57,6 @@ termcolor==1.1.0
 toml==0.10.2
 tomli==2.0.1
 uritemplate==4.1.1
-urllib3==1.26.9
+urllib3==1.26.17
 virtualenv==20.14.1
 wget==3.2
