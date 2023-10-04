@@ -35,7 +35,7 @@ msgpack==1.0.4
 packaging==21.3
 path==16.4.0
 path.py==12.5.0
-Pillow==9.1.1
+Pillow==10.0.1
 platformdirs==2.5.2
 pluggy==1.0.0
 proto-plus==1.20.6
