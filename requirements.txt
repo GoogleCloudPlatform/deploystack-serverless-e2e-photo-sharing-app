@@ -7,7 +7,7 @@ certifi==2022.6.15
 charset-normalizer==2.0.12
 contextlib2==21.6.0
 distlib==0.3.4
-Django==4.1
+Django==4.1.13
 execnet==1.9.0
 filelock==3.7.1
 firebase-admin==5.2.0
