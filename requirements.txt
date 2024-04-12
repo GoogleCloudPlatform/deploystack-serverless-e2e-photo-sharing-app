@@ -28,7 +28,7 @@ grpc-google-iam-v1==0.12.4
 grpcio==1.47.0
 grpcio-status==1.46.3
 httplib2==0.20.4
-idna==3.3
+idna==3.7
 iniconfig==1.1.1
 mock==4.0.3
 msgpack==1.0.4
