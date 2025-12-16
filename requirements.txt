@@ -9,7 +9,7 @@ contextlib2==21.6.0
 distlib==0.3.4
 Django==4.1
 execnet==1.9.0
-filelock==3.7.1
+filelock==3.20.1
 firebase-admin==5.2.0
 google-api-core==2.8.2
 google-api-python-client==2.51.0
