@@ -124,8 +124,8 @@ section_open "Delete SQL Server"
 section_close
 
 section_open "Delete the Cloud Storage Bucket"
-    gsutil rm -rf gs://$PROJECT-bucket/*
-    gsutil rb gs://$PROJECT-bucket 
+    gcloud storage rm --recursive --continue-on-error gs://$PROJECT-bucket/*
+    gcloud storage buckets delete gs://$PROJECT-bucket
 section_close
 
 section_open "Delete Service Account"
