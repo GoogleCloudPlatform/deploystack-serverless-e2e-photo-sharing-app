@@ -44,7 +44,7 @@ py==1.11.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycodestyle==2.8.0
-PyMySQL==1.0.2
+PyMySQL==1.1.1
 pyparsing==3.0.9
 pytest==7.1.2
 pytest-shutil==1.7.0
