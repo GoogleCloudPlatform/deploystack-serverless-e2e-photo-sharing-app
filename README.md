@@ -102,3 +102,9 @@ To remove all billing components from the project
 Have issues or questions, visit [Issues](https://github.com/GoogleCloudPlatform/deploystack-serverless-e2e-photo-sharing-app/issues).
 
 This is not an official Google product.
+
+### Infrastructure model
+![Infrastructure main model](.infragenie/infrastructure_main_model.svg)
+- [socialmediadjangogcp component model](.infragenie/socialmediadjangogcp_component_model.svg)
+
+---
