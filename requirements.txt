@@ -31,7 +31,7 @@ httplib2==0.20.4
 idna==3.3
 iniconfig==1.1.1
 mock==4.0.3
-msgpack==1.0.4
+msgpack==1.2.1
 packaging==21.3
 path==16.4.0
 path.py==12.5.0
