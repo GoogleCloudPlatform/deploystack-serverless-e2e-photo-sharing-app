@@ -29,14 +29,23 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import os
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
-from django.conf.urls.static import static
+from django.views.static import serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('core.urls'))
+    path('', include('core.urls')),
+    re_path(
+        r'^third_party/static/(?P<path>.*)$',
+        serve,
+        {'document_root': os.path.join(settings.BASE_DIR, 'third_party/static')},
+    ),
+    re_path(
+        r'^media/(?P<path>(wallpaper\.jpeg|blank-profile-picture\.png))$',
+        serve,
+        {'document_root': settings.MEDIA_ROOT},
+    ),
 ]
-
-urlpatterns = urlpatterns+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

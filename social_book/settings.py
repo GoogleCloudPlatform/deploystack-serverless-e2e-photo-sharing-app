@@ -27,6 +27,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management.utils import get_random_secret_key
 from google.cloud import secretmanager
 secret_client = secretmanager.SecretManagerServiceClient()
@@ -49,60 +50,96 @@ def get_secret(secret_name, project_id):
     response = secret_client.access_secret_version(request={"name": name})
     return response.payload.data.decode("UTF-8")
 
+def get_optional_secret(secret_name, project_id):
+    try:
+        return get_secret(secret_name, project_id).strip()
+    except Exception:
+        return ""
+
 def process_url(url):
-    """Process the URL to remove the protocol and the trailing slash."""
-    url = url.replace("https://", "")
-    if url[:-1] == "/":
-        url = url[:len(url)-1]
+    """Process the URL to remove the protocol and any trailing slash."""
+    url = url.strip()
+    for prefix in ("https://", "http://"):
+        if url.startswith(prefix):
+            url = url[len(prefix):]
+            break
+    return url.rstrip("/")
+
+def normalize_origin(url):
+    """Ensure origin has scheme and no trailing slash for Django 4.x CSRF_TRUSTED_ORIGINS."""
+    url = url.strip().rstrip("/")
+    if not url:
+        return ""
+    if not url.startswith(("https://", "http://")):
+        url = f"https://{url}"
     return url
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True # TODO: Change this to False in production
+PRODUCTION_MODE = os.environ.get("PRODUCTION_MODE", "")
+IS_PRODUCTION = PRODUCTION_MODE == "production"
+DEBUG = (not IS_PRODUCTION) and (
+    os.environ.get("DJANGO_DEBUG", "false").lower() in ("1", "true", "yes")
+)
+
 PORT = 8080
 LOCAL_HOST_1 = '127.0.0.1'
-LOCAL_HOST_2 = '0.0.0.0'
-URL_IS_SET = False
+LOCAL_HOST_2 = 'localhost'
 
-try:
-    WEBSITE_URL_US_CENTRAL1 = get_secret("WEBSITE_URL_US_CENTRAL1", PROJECT_ID) 
-    WEBSITE_URL_US_WEST1 = get_secret("WEBSITE_URL_US_WEST1", PROJECT_ID)
-    WEBSITE_URL_US_EAST1 = get_secret("WEBSITE_URL_US_EAST1", PROJECT_ID)
-    WEBSITE_GLOBAL_HOST = get_secret("EXTERNAL_IP", PROJECT_ID) 
-    URL_IS_SET = True
-except: 
-    print("Secrets not set. Try running terraform before running this script.")
-    URL_IS_SET = False
+WEBSITE_URL_US_CENTRAL1 = get_optional_secret("WEBSITE_URL_US_CENTRAL1", PROJECT_ID)
+WEBSITE_URL_US_WEST1 = get_optional_secret("WEBSITE_URL_US_WEST1", PROJECT_ID)
+WEBSITE_URL_US_EAST1 = get_optional_secret("WEBSITE_URL_US_EAST1", PROJECT_ID)
+WEBSITE_GLOBAL_HOST = get_optional_secret("EXTERNAL_IP", PROJECT_ID)
+LB_DOMAIN = os.environ.get("LB_DOMAIN", "").strip()
 
+URL_IS_SET = any([
+    WEBSITE_URL_US_CENTRAL1,
+    WEBSITE_URL_US_WEST1,
+    WEBSITE_URL_US_EAST1,
+    WEBSITE_GLOBAL_HOST,
+])
 
-LOCAL_WEBSITE_URL = 'https://{LOCAL_HOST_2}:{PORT}/'
+LOCAL_WEBSITE_URL = f"http://{LOCAL_HOST_1}:{PORT}"
 
-if URL_IS_SET:
-    WEBSITE_HOST_US_CENTRAL1 = process_url(WEBSITE_URL_US_CENTRAL1)
-    WEBSITE_HOST_US_WEST1 = process_url(WEBSITE_URL_US_WEST1)
-    WEBSITE_HOST_US_EAST1 = process_url(WEBSITE_URL_US_EAST1)
-    
-    CSRF_TRUSTED_ORIGINS = [
-        WEBSITE_URL_US_CENTRAL1,
-        WEBSITE_URL_US_WEST1, 
-        WEBSITE_URL_US_EAST1,
-        LOCAL_WEBSITE_URL,
-    ]
+_configured_hosts = []
+_configured_origins = []
 
-    ALLOWED_HOSTS = [
-        LOCAL_HOST_1,
-        LOCAL_HOST_2,
-        WEBSITE_HOST_US_CENTRAL1, 
-        WEBSITE_HOST_US_EAST1, 
-        WEBSITE_HOST_US_WEST1,
-        WEBSITE_GLOBAL_HOST,
-        'localhost'
-    ]
+for _raw_url in (WEBSITE_URL_US_CENTRAL1, WEBSITE_URL_US_WEST1, WEBSITE_URL_US_EAST1):
+    if _raw_url:
+        _host = process_url(_raw_url)
+        if _host and "*" not in _host:
+            _configured_hosts.append(_host)
+            _configured_origins.append(normalize_origin(_raw_url))
+
+for _raw_host in (WEBSITE_GLOBAL_HOST, LB_DOMAIN):
+    if _raw_host:
+        _host = process_url(_raw_host)
+        if _host and "*" not in _host:
+            _configured_hosts.append(_host)
+            _configured_origins.append(f"https://{_host}")
+
+if IS_PRODUCTION:
+    if not _configured_hosts:
+        raise ImproperlyConfigured(
+            "Required host secrets (WEBSITE_URL_* / EXTERNAL_IP) are unavailable in production; "
+            "refusing to fall back to wildcard ALLOWED_HOSTS."
+        )
+    ALLOWED_HOSTS = list(dict.fromkeys(_configured_hosts))
+    CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_configured_origins))
+
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
 else:
-    CSRF_TRUSTED_ORIGINS = [
-        LOCAL_WEBSITE_URL
-    ]
+    ALLOWED_HOSTS = list(dict.fromkeys(_configured_hosts + [LOCAL_HOST_1, LOCAL_HOST_2]))
+    CSRF_TRUSTED_ORIGINS = list(
+        dict.fromkeys(_configured_origins + [LOCAL_WEBSITE_URL, f"http://{LOCAL_HOST_2}:{PORT}"])
+    )
 
-    ALLOWED_HOSTS = ['*']
+# Enforce upload size limits (10 MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 
 # Application definition
@@ -117,7 +154,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

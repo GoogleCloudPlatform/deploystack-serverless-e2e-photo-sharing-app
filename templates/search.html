@@ -33,10 +33,10 @@ limitations under the License. -->
 </head>
 
 <body>
-    <form action="search" method="POST">
-        {% csrf_token %}
-        <header style="margin-top: -23px;">
-            <div class="header_inner">
+    <header style="margin-top: -23px;">
+        <div class="header_inner">
+            <form action="/search" method="POST">
+                {% csrf_token %}
                 <div class="left-side">
                     <!-- Logo -->
                     <div id="logo">
@@ -47,26 +47,12 @@ limitations under the License. -->
                         </a>
                     </div>
 
-                    <!--<div class="triger" uk-toggle="target: #wrapper ; cls: sidebar-active">
-                            <i class="uil-bars"></i>
-                        </div>-->
-
-                    <!-- <div class="header_search"> -->
                     <div style="right: 50%; position: absolute; flex-direction: row; display: flex;">
                         <input type="text" name="username" placeholder="Search for username..">&nbsp; &nbsp;
                         <button type="submit"><i class="fa fa-search fa-1x"></i></button>
                     </div>
-
-                    <!-- <div class="icon-search">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div> -->
-                    <!-- </div> -->
-
                 </div>
+            </form>
                 <div class="right-side lg:pr-4">
                     <!-- welcome user -->
                     <a href="#" class="">
@@ -210,15 +196,18 @@ limitations under the License. -->
                     <div uk-drop="mode: click;offset:9" class="header_dropdown profile_dropdown border-t">
                         <ul>
                             <li><a href="/settings"> Account setting </a> </li>
-                            <!-- <li><a href="explore.html">explore </a> </li> -->
-                            <li><a href="/logout"> Log Out</a></li>
+                            <li>
+                                <form action="/logout" method="POST" style="margin:0;">
+                                    {% csrf_token %}
+                                    <button type="submit" style="background:none;border:none;padding:8px 14px;cursor:pointer;width:100%;text-align:left;">Log Out</button>
+                                </form>
+                            </li>
                         </ul>
                     </div>
 
                 </div>
             </div>
         </header>
-    </form>
 
     <div style="margin-left: 250px; margin-right: 250px;">
 
