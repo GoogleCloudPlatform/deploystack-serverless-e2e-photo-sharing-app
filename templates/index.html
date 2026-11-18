@@ -203,7 +203,12 @@ limitations under the License. -->
                     <ul>
                         <li><a href="/profile/{{user_profile.user.username}}"> Profile </a> </li>
                         <li><a href="/settings"> Account setting </a> </li>
-                        <li><a href="logout"> Log Out</a></li>
+                        <li>
+                            <form action="/logout" method="POST" style="margin:0;">
+                                {% csrf_token %}
+                                <button type="submit" style="background:none;border:none;padding:8px 14px;cursor:pointer;width:100%;text-align:left;">Log Out</button>
+                            </form>
+                        </li>
                     </ul>
                 </div>
 
@@ -254,29 +259,34 @@ limitations under the License. -->
                     <div class="py-3 px-4 space-y-3">
 
                         <div class="flex space-x-4 lg:font-bold">
-                            <a href="/like-post?post_id={{post.id}}" class="flex items-center space-x-2">
-                                <div class="p-2 rounded-full text-black">
-                                    <!-- <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"  class="">
-                                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                                            </svg> -->
-                                    <i style="width: 30px; height: 30px;" class="fa-solid fa-paw"></i>
-                                    {% if post.no_of_likes == 0 %}
-                                    <p>No likes</p>
-                                    {% elif post.no_of_likes == 1 %}
-                                    <p>Liked by {{post.no_of_likes}} person</p>
-                                    {% else %}
-                                    <p>Liked by {{post.no_of_likes}} people</p>
-                                    {% endif %}
-                                </div>
-
-                            </a>
+                            <form action="/like-post" method="POST" style="margin:0;">
+                                {% csrf_token %}
+                                <input type="hidden" name="post_id" value="{{post.id}}">
+                                <button type="submit" class="flex items-center space-x-2" style="background:none;border:none;cursor:pointer;">
+                                    <div class="p-2 rounded-full text-black">
+                                        <i style="width: 30px; height: 30px;" class="fa-solid fa-paw"></i>
+                                        {% if post.no_of_likes == 0 %}
+                                        <p>No likes</p>
+                                        {% elif post.no_of_likes == 1 %}
+                                        <p>Liked by {{post.no_of_likes}} person</p>
+                                        {% else %}
+                                        <p>Liked by {{post.no_of_likes}} people</p>
+                                        {% endif %}
+                                    </div>
+                                </button>
+                            </form>
                         </div>
                         <p>
                             <a href="/profile/{{post.user}}"><strong>{{post.user}}</strong></a> {{post.caption}}
                         </p>
 
-                        </p>
-                        <a href="/translate?post_id={{post.id}}">translate</a>
+                        {% if post.user == user.username %}
+                        <form action="/translate" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="post_id" value="{{post.id}}">
+                            <button type="submit" style="background:none;border:none;color:#2563eb;cursor:pointer;padding:0;">translate</button>
+                        </form>
+                        {% endif %}
                         <div class="bg-gray-100 bg-gray-100 rounded-full rounded-md relative ">
                             <form action="/search" method="POST">
                                 {% csrf_token %}

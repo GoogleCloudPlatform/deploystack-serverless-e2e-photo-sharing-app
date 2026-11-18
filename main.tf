@@ -51,6 +51,12 @@ variable "basename" {
   description = "Prefix for naming resources"
 }
 
+variable "domain" {
+  type        = string
+  default     = ""
+  description = "Custom domain for the load balancer managed SSL certificate (defaults to <external_ip>.nip.io when empty)"
+}
+
 data "google_project" "project" {
   project_id = var.project
 }
@@ -214,15 +220,16 @@ resource "google_sql_user" "django" {
 
 # Step 6: Create Cloud Storage
 resource "google_storage_bucket" "media" {
-  name     = "${var.project}-bucket"
-  location = "US"
+  name                        = "${var.project}-bucket"
+  location                    = "US"
+  uniform_bucket_level_access = true
 }
 
 resource "google_storage_bucket_iam_binding" "main" {
   bucket = google_storage_bucket.media.name
   role   = "roles/storage.objectViewer"
   members = [
-    "allUsers",
+    local.django_serviceaccount,
   ]
 }
 
@@ -261,6 +268,12 @@ resource "google_secret_manager_secret_iam_binding" "django_settings" {
   members   = [local.cloudbuild_serviceaccount, local.django_serviceaccount]
 }
 
+resource "google_compute_global_address" "lb_ip" {
+  project    = var.project
+  name       = "${var.project}-lb-ip"
+  depends_on = [google_project_service.compute]
+}
+
 locals {
   serviceagent_serviceaccount = "serviceAccount:${data.google_project.project.number}@cloudservices.gserviceaccount.com"
   cloudbuild_serviceaccount   = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
@@ -270,6 +283,7 @@ locals {
   # TODO: prefix all of these properly
   sql_database_name           = "sql-database-${random_id.name.hex}"
   runlocations                = ["us-west1", "us-central1", "us-east1"]
+  lb_domain                   = var.domain != "" ? var.domain : "${google_compute_global_address.lb_ip.address}.nip.io"
 }
 
 
@@ -289,19 +303,19 @@ resource "google_secret_manager_secret" "main" {
     automatic = true
   }
 
-  depends_on = [google_sql_user.django, google_sql_database.database, google_sql_database_instance.instance]
+  depends_on = [google_project_service.secretmanager, google_sql_user.django, google_sql_database.database, google_sql_database_instance.instance]
 
 }
 
 resource "google_secret_manager_secret" "network" {
   for_each = {
-    "EXTERNAL_IP" : module.lb-http.external_ip,
+    "EXTERNAL_IP" : google_compute_global_address.lb_ip.address,
   }
   secret_id = each.key
   replication {
     automatic = true
   }
-  depends_on = [module.lb-http, google_compute_network.main, google_cloud_run_service.service]
+  depends_on = [google_project_service.secretmanager, google_compute_global_address.lb_ip]
 }
 
 resource "google_secret_manager_secret" "url" {
@@ -333,7 +347,7 @@ resource "google_secret_manager_secret_version" "main" {
 
 resource "google_secret_manager_secret_version" "network" {
   for_each = {
-    "EXTERNAL_IP" : module.lb-http.external_ip,
+    "EXTERNAL_IP" : google_compute_global_address.lb_ip.address,
   }
   secret      = google_secret_manager_secret.network[each.key].id
   secret_data = each.value
@@ -360,16 +374,16 @@ resource "google_secret_manager_secret_iam_binding" "main" {
   }
   secret_id = google_secret_manager_secret.main[each.key].id
   role      = "roles/secretmanager.secretAccessor"
-  members   = [local.cloudbuild_serviceaccount]
+  members   = [local.cloudbuild_serviceaccount, local.django_serviceaccount]
 }
 
 resource "google_secret_manager_secret_iam_binding" "network" {
   for_each = {
-    "EXTERNAL_IP" : module.lb-http.external_ip,
+    "EXTERNAL_IP" : google_compute_global_address.lb_ip.address,
   }
   secret_id = google_secret_manager_secret.network[each.key].id
   role      = "roles/secretmanager.secretAccessor"
-  members   = [local.cloudbuild_serviceaccount]
+  members   = [local.cloudbuild_serviceaccount, local.django_serviceaccount]
 }
 
 resource "google_secret_manager_secret_iam_binding" "url" {
@@ -380,7 +394,7 @@ resource "google_secret_manager_secret_iam_binding" "url" {
   }
   secret_id = google_secret_manager_secret.url[each.key].id
   role      = "roles/secretmanager.secretAccessor"
-  members   = [local.cloudbuild_serviceaccount]
+  members   = [local.cloudbuild_serviceaccount, local.django_serviceaccount]
 }
 
 # ------------------------------------------------------------------------------
@@ -445,10 +459,14 @@ resource "google_cloud_run_service" "service" {
   project                    = var.project
   autogenerate_revision_name = true
   depends_on = [
-    # google_sql_database_instance.instance,
     google_service_account.django,
     google_sql_database_instance.instance,
     google_vpc_access_connector.connector,
+    google_secret_manager_secret_version.main,
+    google_secret_manager_secret_version.network,
+    google_secret_manager_secret_iam_binding.main,
+    google_secret_manager_secret_iam_binding.network,
+    null_resource.cloudbuild_api,
   ]
 
   template {
@@ -459,6 +477,14 @@ resource "google_cloud_run_service" "service" {
         env {
           name  = "PROJECT_ID"
           value = var.project
+        }
+        env {
+          name  = "PRODUCTION_MODE"
+          value = "production"
+        }
+        env {
+          name  = "LB_DOMAIN"
+          value = local.lb_domain
         }
       }
     }
@@ -511,6 +537,20 @@ resource "google_compute_region_network_endpoint_group" "default" {
   depends_on = [google_cloud_run_service.service]
 }
 
+resource "null_resource" "refresh_cloud_run_urls" {
+  for_each = toset([for location in local.runlocations : location if can(regex("us-(?:west|central|east)1", location))])
+
+  provisioner "local-exec" {
+    command = "gcloud run services update ${var.project} --region=${each.key} --project=${var.project} --update-env-vars=URL_SECRETS_READY=true"
+  }
+
+  depends_on = [
+    google_cloud_run_service.service,
+    google_secret_manager_secret_version.url,
+    google_secret_manager_secret_iam_binding.url,
+  ]
+}
+
 module "lb-http" {
   source  = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
   version = "~> 4.5"
@@ -518,9 +558,11 @@ module "lb-http" {
   project = var.project
   name    = var.project
 
-  ssl                             = false
+  create_address                  = false
+  address                         = google_compute_global_address.lb_ip.address
+  ssl                             = true
   https_redirect                  = true
-  managed_ssl_certificate_domains = []
+  managed_ssl_certificate_domains = [local.lb_domain]
   use_ssl_certificates            = false
   backends = {
     default = {
@@ -582,8 +624,8 @@ resource "google_service_account_iam_binding" "cloudbuild_sa" {
 }
 
 output "url" {
-  value       = "http://${module.lb-http.external_ip}"
-  description = "The URL of the load balancer with the external IP address. Use this to set up custom domain mapping."
+  value       = "https://${local.lb_domain}"
+  description = "The HTTPS URL of the load balancer."
 }
 
 output "cloud_run_url" {

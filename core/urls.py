@@ -30,4 +30,5 @@ urlpatterns = [
     path('signup', views.signup, name='signup'),
     path('signin', views.signin, name='signin'),
     path('logout', views.logout, name='logout'),
+    path('gcs-media/<path:blob_path>', views.serve_gcs_media, name='serve-gcs-media'),
 ]
